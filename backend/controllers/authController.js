@@ -6,19 +6,32 @@ import generateToken from "../utils/generateToken.js";
 // @route POST /api/auth/register
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, phone, password, confirmPassword } = req.body;
 
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
+    // Basic field check
+    if (!name || !email || !phone || !password || !confirmPassword) {
+      return res.status(400).json({ message: "Please fill all required fields" });
     }
 
+    // Confirm password check
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Password and Confirm Password do not match" });
+    }
+
+    // Check existing user by email or phone
+    const userExists = await User.findOne({ $or: [{ email }, { phone }] });
+    if (userExists) {
+      return res.status(400).json({ message: "User already exists with this email or phone" });
+    }
+
+    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const user = await User.create({
       name,
       email,
+      phone,
       password: hashedPassword,
     });
 
@@ -28,6 +41,7 @@ export const registerUser = async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
       role: user.role,
     });
   } catch (error) {
@@ -40,6 +54,10 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Please provide email and password" });
+    }
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -57,6 +75,7 @@ export const loginUser = async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
       role: user.role,
     });
   } catch (error) {
