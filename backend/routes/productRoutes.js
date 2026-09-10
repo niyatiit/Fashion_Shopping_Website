@@ -2,6 +2,7 @@ import express from "express";
 import {
   createProduct,
   getAllProducts,
+  getBestSellers,
   getProductById,
   updateProduct,
   deleteProduct,
@@ -23,6 +24,7 @@ const formatImages = (req, res, next) => {
 };
 
 router.get("/", getAllProducts);
+router.get("/best-sellers", getBestSellers);
 router.get("/:id", getProductById);
 
 router.post("/", protect, admin, upload.array("images", 5), formatImages, createProduct);

@@ -1,4 +1,5 @@
 import Product from "../models/Product.js";
+import Order from "../models/Order.js";
 import cloudinary from "../config/cloudinary.js";
 
 // @desc Create a new product (Admin only)
@@ -56,6 +57,8 @@ export const getAllProducts = async (req, res) => {
       size,
       color,
       sort,
+      isFeatured,
+      onSale,
       page = 1,
       limit = 12,
     } = req.query;
@@ -76,6 +79,12 @@ export const getAllProducts = async (req, res) => {
     }
     if (color) {
       query.colors = color;
+    }
+    if (isFeatured === "true") {
+      query.isFeatured = true;
+    }
+    if (onSale === "true") {
+      query.discountPrice = { $gt: 0 };
     }
     if (minPrice || maxPrice) {
       query.price = {};
@@ -104,6 +113,56 @@ export const getAllProducts = async (req, res) => {
       totalPages: Math.ceil(totalProducts / Number(limit)),
       currentPage: Number(page),
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc Get best-selling products, ranked by units actually sold across orders
+// @route GET /api/products/best-sellers
+export const getBestSellers = async (req, res) => {
+  try {
+    const limit = Number(req.query.limit) || 8;
+
+    const topSellingIds = await Order.aggregate([
+      { $match: { orderStatus: { $ne: "Cancelled" } } },
+      { $unwind: "$orderItems" },
+      {
+        $group: {
+          _id: "$orderItems.product",
+          unitsSold: { $sum: "$orderItems.quantity" },
+        },
+      },
+      { $sort: { unitsSold: -1 } },
+      { $limit: limit },
+    ]);
+
+    if (topSellingIds.length === 0) {
+      // No orders yet — fall back to top-rated products so the section isn't empty
+      const fallback = await Product.find({})
+        .populate("category", "name slug")
+        .sort({ ratings: -1, numReviews: -1 })
+        .limit(limit);
+      return res.json(fallback);
+    }
+
+    const productMap = new Map(
+      topSellingIds.map((entry) => [String(entry._id), entry.unitsSold])
+    );
+
+    const products = await Product.find({ _id: { $in: [...productMap.keys()] } }).populate(
+      "category",
+      "name slug"
+    );
+
+    // Preserve the units-sold ranking order from the aggregation
+    products.sort(
+      (a, b) => productMap.get(String(b._id)) - productMap.get(String(a._id))
+    );
+
+    res.json(
+      products.map((p) => ({ ...p.toObject(), unitsSold: productMap.get(String(p._id)) }))
+    );
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
