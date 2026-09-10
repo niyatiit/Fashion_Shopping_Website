@@ -41,77 +41,101 @@ const Register = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-16 p-6 bg-white shadow-md rounded-lg">
-      <h2 className="text-2xl font-bold mb-6 text-center">Create Account</h2>
-
-      {error && (
-        <p className="bg-red-100 text-red-600 text-sm p-2 rounded mb-4">
-          {error}
+    <div className="min-h-[80vh] flex items-center justify-center bg-ivory px-6 py-16">
+      <div className="w-full max-w-md border border-sand bg-white p-10">
+        <h1 className="font-display text-3xl text-ink mb-1">Create account</h1>
+        <p className="text-sm text-muted mb-8">
+          Join FashionHub to start shopping.
         </p>
-      )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="text"
-          name="name"
-          placeholder="Full Name"
-          value={formData.name}
-          onChange={handleChange}
-          required
-          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <input
-          type="tel"
-          name="phone"
-          placeholder="Phone Number"
-          value={formData.phone}
-          onChange={handleChange}
-          required
-          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <input
-          type="password"
-          name="password"
-          placeholder="Password"
-          value={formData.password}
-          onChange={handleChange}
-          required
-          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <input
-          type="password"
-          name="confirmPassword"
-          placeholder="Confirm Password"
-          value={formData.confirmPassword}
-          onChange={handleChange}
-          required
-          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        {error && (
+          <p className="border-l-2 border-crimson bg-sand/40 text-crimson text-sm px-3 py-2 mb-6">
+            {error}
+          </p>
+        )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? "Creating account..." : "Register"}
-        </button>
-      </form>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <label className="block">
+            <span className="block text-sm text-muted mb-1.5">Full name</span>
+            <input
+              type="text"
+              name="name"
+              placeholder="Jane Doe"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              className="w-full bg-transparent border-b border-sand py-2 text-ink placeholder:text-muted/60 focus:outline-none focus:border-ink transition-colors"
+            />
+          </label>
 
-      <p className="text-sm text-center mt-4">
-        Already have an account?{" "}
-        <Link to="/login" className="text-blue-600 hover:underline">
-          Login
-        </Link>
-      </p>
+          <label className="block">
+            <span className="block text-sm text-muted mb-1.5">Email</span>
+            <input
+              type="email"
+              name="email"
+              placeholder="you@example.com"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              className="w-full bg-transparent border-b border-sand py-2 text-ink placeholder:text-muted/60 focus:outline-none focus:border-ink transition-colors"
+            />
+          </label>
+
+          <label className="block">
+            <span className="block text-sm text-muted mb-1.5">Phone number</span>
+            <input
+              type="tel"
+              name="phone"
+              placeholder="+1 555 000 0000"
+              value={formData.phone}
+              onChange={handleChange}
+              required
+              className="w-full bg-transparent border-b border-sand py-2 text-ink placeholder:text-muted/60 focus:outline-none focus:border-ink transition-colors"
+            />
+          </label>
+
+          <label className="block">
+            <span className="block text-sm text-muted mb-1.5">Password</span>
+            <input
+              type="password"
+              name="password"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              className="w-full bg-transparent border-b border-sand py-2 text-ink placeholder:text-muted/60 focus:outline-none focus:border-ink transition-colors"
+            />
+          </label>
+
+          <label className="block">
+            <span className="block text-sm text-muted mb-1.5">Confirm password</span>
+            <input
+              type="password"
+              name="confirmPassword"
+              placeholder="••••••••"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              required
+              className="w-full bg-transparent border-b border-sand py-2 text-ink placeholder:text-muted/60 focus:outline-none focus:border-ink transition-colors"
+            />
+          </label>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-ink text-ivory py-3 mt-2 hover:bg-crimson transition-colors disabled:opacity-50"
+          >
+            {loading ? "Creating account..." : "Create account"}
+          </button>
+        </form>
+
+        <p className="text-sm text-muted text-center mt-8">
+          Already have an account?{" "}
+          <Link to="/login" className="text-crimson hover:underline">
+            Sign in
+          </Link>
+        </p>
+      </div>
     </div>
   );
 };
