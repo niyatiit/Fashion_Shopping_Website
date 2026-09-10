@@ -118,3 +118,14 @@ export const deleteReview = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc Get logged-in user's own reviews
+// @route GET /api/reviews/user/mine
+export const getMyReviews = async (req, res) => {
+  try {
+    const reviews = await Review.find({ user: req.user._id }).populate("product", "name images");
+    res.json(reviews);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

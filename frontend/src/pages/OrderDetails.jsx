@@ -36,12 +36,17 @@ const OrderDetails = () => {
     }
   };
 
-  if (loading) return <p className="text-center text-muted py-20">Loading...</p>;
-  if (error || !order) return <p className="text-center text-muted py-20">{error}</p>;
+  if (loading)
+    return <p className="text-center text-muted py-20">Loading...</p>;
+  if (error || !order)
+    return <p className="text-center text-muted py-20">{error}</p>;
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-12">
-      <Link to="/orders" className="text-sm text-muted hover:text-crimson transition-colors">
+      <Link
+        to="/orders"
+        className="text-sm text-muted hover:text-crimson transition-colors"
+      >
         ← Back to orders
       </Link>
 
@@ -67,14 +72,21 @@ const OrderDetails = () => {
         {order.orderItems.map((item, i) => (
           <div key={i} className="flex gap-5 py-5 border-b border-sand">
             <div className="w-20 h-28 bg-sand shrink-0 overflow-hidden">
-              <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+              <img
+                src={item.image}
+                alt={item.name}
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="flex-1">
               <p className="text-ink">{item.name}</p>
               <p className="text-sm text-muted mt-1">
-                {item.size && `Size: ${item.size}`} {item.color && `· ${item.color}`} · Qty: {item.quantity}
+                {item.size && `Size: ${item.size}`}{" "}
+                {item.color && `· ${item.color}`} · Qty: {item.quantity}
               </p>
-              <p className="text-ink font-medium mt-1">₹{item.price * item.quantity}</p>
+              <p className="text-ink font-medium mt-1">
+                ₹{item.price * item.quantity}
+              </p>
             </div>
           </div>
         ))}
@@ -83,19 +95,23 @@ const OrderDetails = () => {
       {/* Shipping + Payment */}
       <div className="grid md:grid-cols-2 gap-10 mb-10">
         <div>
-          <h2 className="font-display text-lg text-ink mb-3">Shipping Address</h2>
+          <h2 className="font-display text-lg text-ink mb-3">
+            Shipping Address
+          </h2>
           <p className="text-sm text-muted leading-relaxed">
-            {order.shippingAddress.houseNo}, {order.shippingAddress.street}
+            {order.shippingAddress.fullName}
             <br />
-            {order.shippingAddress.city}, {order.shippingAddress.state} - {order.shippingAddress.pincode}
+            {order.shippingAddress.address}, {order.shippingAddress.city},{" "}
+            {order.shippingAddress.state} - {order.shippingAddress.pincode}
             <br />
-            {order.shippingAddress.country}
+            {order.shippingAddress.country} · {order.shippingAddress.phone}
           </p>
         </div>
         <div>
           <h2 className="font-display text-lg text-ink mb-3">Payment</h2>
           <p className="text-sm text-muted">
-            Method: {order.paymentMethod === "COD" ? "Cash on Delivery" : "Paid Online"}
+            Method:{" "}
+            {order.paymentMethod === "COD" ? "Cash on Delivery" : "Paid Online"}
             <br />
             Status: {order.isPaid ? "Paid" : "Pending"}
           </p>
@@ -110,7 +126,9 @@ const OrderDetails = () => {
         </div>
         <div className="flex justify-between text-sm text-muted">
           <span>Shipping</span>
-          <span>{order.shippingPrice === 0 ? "Free" : `₹${order.shippingPrice}`}</span>
+          <span>
+            {order.shippingPrice === 0 ? "Free" : `₹${order.shippingPrice}`}
+          </span>
         </div>
         <div className="flex justify-between text-ink font-medium text-lg pt-2 border-t border-sand">
           <span>Total</span>

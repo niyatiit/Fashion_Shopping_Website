@@ -84,9 +84,12 @@ const Checkout = () => {
         return;
       }
 
-      const { data: razorOrder } = await axiosInstance.post("/payment/create-order", {
-        amount: total,
-      });
+      const { data: razorOrder } = await axiosInstance.post(
+        "/payment/create-order",
+        {
+          amount: total,
+        },
+      );
 
       const options = {
         key: razorOrder.key,
@@ -125,12 +128,16 @@ const Checkout = () => {
     <div className="max-w-4xl mx-auto px-6 py-12">
       <h1 className="font-display text-3xl text-ink mb-10">Checkout</h1>
 
-      {error && <p className="bg-red-50 text-crimson text-sm p-3 mb-6">{error}</p>}
+      {error && (
+        <p className="bg-red-50 text-crimson text-sm p-3 mb-6">{error}</p>
+      )}
 
       <div className="mb-10">
         <h2 className="font-display text-lg text-ink mb-4">Shipping Address</h2>
         {addresses.length === 0 ? (
-          <p className="text-muted text-sm">No saved addresses. Add one from your profile.</p>
+          <p className="text-muted text-sm">
+            No saved addresses. Add one from your profile.
+          </p>
         ) : (
           <div className="space-y-3">
             {addresses.map((addr) => (
@@ -148,7 +155,9 @@ const Checkout = () => {
                   onChange={(e) => setSelectedAddress(e.target.value)}
                   className="mr-3"
                 />
-                {addr.houseNo}, {addr.street}, {addr.city}, {addr.state} - {addr.pincode}
+                <span className="font-medium">{addr.fullName}</span> —{" "}
+                {addr.address}, {addr.city}, {addr.state} - {addr.pincode} ·{" "}
+                {addr.phone}{" "}
               </label>
             ))}
           </div>
@@ -163,7 +172,9 @@ const Checkout = () => {
               key={method}
               onClick={() => setPaymentMethod(method)}
               className={`px-5 py-2 text-sm border ${
-                paymentMethod === method ? "border-ink bg-ink text-ivory" : "border-sand text-ink"
+                paymentMethod === method
+                  ? "border-ink bg-ink text-ivory"
+                  : "border-sand text-ink"
               }`}
             >
               {method === "COD" ? "Cash on Delivery" : "Pay Online"}

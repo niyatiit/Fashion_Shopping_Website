@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import useCart from "../../hooks/useCart";
+import Avatar from "../account/Avatar";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -63,9 +64,12 @@ const Navbar = () => {
             <div className="flex items-center gap-4 text-sm">
               <Link
                 to="/profile"
-                className="text-ink hover:text-crimson transition-colors"
+                className="flex items-center gap-2 text-ink hover:text-crimson transition-colors"
               >
-                {user.name.split(" ")[0]}
+                <Avatar user={user} size="sm" />
+                <span className="hidden sm:inline">
+                  {user.name.split(" ")[0]}
+                </span>
               </Link>
               <Link
                 to="/orders"
