@@ -67,6 +67,12 @@ const Navbar = () => {
               >
                 {user.name.split(" ")[0]}
               </Link>
+              <Link
+                to="/orders"
+                className="text-ink hover:text-crimson transition-colors"
+              >
+                Orders
+              </Link>
               {user.role === "admin" && (
                 <Link to="/admin/dashboard" className="text-crimson">
                   Admin
