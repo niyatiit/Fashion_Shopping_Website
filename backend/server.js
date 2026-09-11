@@ -14,7 +14,8 @@ import reviewRoutes from "./routes/reviewRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
-import wishlistRoutes from "./routes/wishlistRoutes.js"
+import wishlistRoutes from "./routes/wishlistRoutes.js";
+import couponRoutes from "./routes/couponRoutes.js"
 
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 
@@ -45,6 +46,7 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/coupons", couponRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
