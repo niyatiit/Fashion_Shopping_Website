@@ -7,7 +7,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if user is already logged in (cookie exists) on app load
   const fetchProfile = async () => {
     try {
       const { data } = await axiosInstance.get("/users/profile");
@@ -40,8 +39,45 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const forgotPassword = async (email) => {
+    const { data } = await axiosInstance.post("/auth/forgot-password", { email });
+    return data;
+  };
+
+  const resetPassword = async (token, password, confirmPassword) => {
+    const { data } = await axiosInstance.put(`/auth/reset-password/${token}`, {
+      password,
+      confirmPassword,
+    });
+    return data;
+  };
+
+  const verifyEmail = async (token) => {
+    const { data } = await axiosInstance.get(`/auth/verify-email/${token}`);
+    await fetchProfile();
+    return data;
+  };
+
+  const resendVerification = async () => {
+    const { data } = await axiosInstance.post("/auth/resend-verification");
+    return data;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, register, login, logout ,fetchProfile  }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        register,
+        login,
+        logout,
+        fetchProfile,
+        forgotPassword,
+        resetPassword,
+        verifyEmail,
+        resendVerification,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

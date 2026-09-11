@@ -1,11 +1,21 @@
 import { useState, useEffect } from "react";
 import axiosInstance from "../../api/axiosInstance";
 
-const ProductForm = ({ onSuccess }) => {
+const ProductForm = ({ onSuccess, onCancel, initialProduct = null }) => {
+  const isEditMode = Boolean(initialProduct);
+
   const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
-    name: "", description: "", price: "", discountPrice: "", category: "",
-    brand: "", sizes: "", colors: "", stock: "",
+    name: initialProduct?.name || "",
+    description: initialProduct?.description || "",
+    price: initialProduct?.price || "",
+    discountPrice: initialProduct?.discountPrice || "",
+    category: initialProduct?.category?._id || initialProduct?.category || "",
+    brand: initialProduct?.brand || "",
+    sizes: initialProduct?.sizes?.join(", ") || "",
+    colors: initialProduct?.colors?.join(", ") || "",
+    stock: initialProduct?.stock ?? "",
+    isFeatured: initialProduct?.isFeatured || false,
   });
   const [images, setImages] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -25,7 +35,7 @@ const ProductForm = ({ onSuccess }) => {
     e.preventDefault();
     setError("");
 
-    if (images.length === 0) {
+    if (!isEditMode && images.length === 0) {
       setError("Please select at least one image");
       return;
     }
@@ -40,19 +50,24 @@ const ProductForm = ({ onSuccess }) => {
       data.append("category", formData.category);
       data.append("brand", formData.brand);
       data.append("stock", formData.stock);
+      data.append("isFeatured", formData.isFeatured);
       formData.sizes.split(",").map((s) => s.trim()).filter(Boolean).forEach((s) => data.append("sizes", s));
       formData.colors.split(",").map((c) => c.trim()).filter(Boolean).forEach((c) => data.append("colors", c));
       images.forEach((img) => data.append("images", img));
 
-      await axiosInstance.post("/products", data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      if (isEditMode) {
+        await axiosInstance.put(`/products/${initialProduct._id}`, data, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      } else {
+        await axiosInstance.post("/products", data, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      }
 
-      setFormData({ name: "", description: "", price: "", discountPrice: "", category: "", brand: "", sizes: "", colors: "", stock: "" });
-      setImages([]);
       onSuccess();
     } catch (err) {
-      setError(err.response?.data?.message || "Could not create product");
+      setError(err.response?.data?.message || `Could not ${isEditMode ? "update" : "create"} product`);
     } finally {
       setSubmitting(false);
     }
@@ -82,14 +97,43 @@ const ProductForm = ({ onSuccess }) => {
       <input placeholder="Sizes (comma separated, e.g. S,M,L)" value={formData.sizes} onChange={(e) => setFormData({ ...formData, sizes: e.target.value })} className="w-full border border-sand px-3 py-2 focus:outline-none focus:border-crimson" />
       <input placeholder="Colors (comma separated, e.g. Red,Blue)" value={formData.colors} onChange={(e) => setFormData({ ...formData, colors: e.target.value })} className="w-full border border-sand px-3 py-2 focus:outline-none focus:border-crimson" />
 
+      <label className="flex items-center gap-2 text-muted">
+        <input
+          type="checkbox"
+          checked={formData.isFeatured}
+          onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+        />
+        Show in "Featured Products" on the homepage
+      </label>
+
+      {isEditMode && initialProduct.images?.length > 0 && (
+        <div>
+          <label className="block text-muted mb-2">Current Images</label>
+          <div className="flex gap-2">
+            {initialProduct.images.map((img, i) => (
+              <img key={i} src={img.url} alt="" className="w-14 h-16 object-cover bg-sand" />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div>
-        <label className="block text-muted mb-2">Product Images</label>
+        <label className="block text-muted mb-2">
+          {isEditMode ? "Replace Images (optional — leave empty to keep current)" : "Product Images"}
+        </label>
         <input type="file" multiple accept="image/*" onChange={(e) => setImages(Array.from(e.target.files))} className="text-sm" />
       </div>
 
-      <button type="submit" disabled={submitting} className="bg-ink text-ivory px-5 py-2 hover:bg-crimson transition-colors disabled:opacity-50">
-        {submitting ? "Uploading..." : "Create Product"}
-      </button>
+      <div className="flex gap-3">
+        <button type="submit" disabled={submitting} className="bg-ink text-ivory px-5 py-2 hover:bg-crimson transition-colors disabled:opacity-50">
+          {submitting ? (isEditMode ? "Updating..." : "Uploading...") : isEditMode ? "Update Product" : "Create Product"}
+        </button>
+        {isEditMode && (
+          <button type="button" onClick={onCancel} className="text-muted hover:text-ink transition-colors">
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   );
 };

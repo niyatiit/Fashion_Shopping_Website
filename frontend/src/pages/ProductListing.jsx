@@ -9,17 +9,26 @@ const ProductListing = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
     minPrice: "",
     maxPrice: "",
     sort: "",
+    category: searchParams.get("category") || "",
+    size: "",
+    color: "",
+    brand: "",
     keyword: searchParams.get("keyword") || "",
   });
 
-  // Keep filters in sync with the URL (e.g. searching again from the navbar
-  // while already on this page, or landing here via a "?onSale=true" link).
   useEffect(() => {
-    setFilters((prev) => ({ ...prev, keyword: searchParams.get("keyword") || "" }));
+    setFilters((prev) => ({
+      ...prev,
+      keyword: searchParams.get("keyword") || "",
+      category: searchParams.get("category") || prev.category,
+    }));
+    setPage(1);
   }, [searchParams]);
 
   useEffect(() => {
@@ -32,11 +41,16 @@ const ProductListing = () => {
         if (filters.minPrice) params.append("minPrice", filters.minPrice);
         if (filters.maxPrice) params.append("maxPrice", filters.maxPrice);
         if (filters.sort) params.append("sort", filters.sort);
-        if (searchParams.get("category")) params.append("category", searchParams.get("category"));
+        if (filters.category) params.append("category", filters.category);
+        if (filters.size) params.append("size", filters.size);
+        if (filters.color) params.append("color", filters.color);
+        if (filters.brand) params.append("brand", filters.brand);
         if (searchParams.get("onSale")) params.append("onSale", searchParams.get("onSale"));
+        params.append("page", page);
 
         const { data } = await axiosInstance.get(`/products?${params.toString()}`);
         setProducts(data.products);
+        setTotalPages(data.totalPages || 1);
       } catch (err) {
         console.error(err);
         setError("Something went wrong while loading products. Please try again.");
@@ -45,7 +59,12 @@ const ProductListing = () => {
       }
     };
     fetchProducts();
-  }, [filters, searchParams]);
+  }, [filters, page, searchParams]);
+
+  const handleSetFilters = (updater) => {
+    setFilters(updater);
+    setPage(1);
+  };
 
   const heading = filters.keyword
     ? `Results for "${filters.keyword}"`
@@ -58,12 +77,35 @@ const ProductListing = () => {
       <h1 className="font-display text-3xl text-ink mb-10">{heading}</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-10">
-        <ProductFilters filters={filters} setFilters={setFilters} />
-        {error ? (
-          <p className="text-center text-crimson py-20">{error}</p>
-        ) : (
-          <ProductGrid products={products} loading={loading} />
-        )}
+        <ProductFilters filters={filters} setFilters={handleSetFilters} />
+        <div>
+          {error ? (
+            <p className="text-center text-crimson py-20">{error}</p>
+          ) : (
+            <>
+              <ProductGrid products={products} loading={loading} />
+              {!loading && !error && totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-12">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="border border-sand px-4 py-2 text-sm text-ink hover:border-ink transition-colors disabled:opacity-40"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-muted px-3">Page {page} of {totalPages}</span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="border border-sand px-4 py-2 text-sm text-ink hover:border-ink transition-colors disabled:opacity-40"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -6,13 +6,11 @@ const VerifyEmail = () => {
   const { verifyEmail } = useAuth();
   const { token } = useParams();
 
-  const [status, setStatus] = useState("verifying"); // verifying | success | error
+  const [status, setStatus] = useState("verifying");
   const [message, setMessage] = useState("");
   const hasRun = useRef(false);
 
   useEffect(() => {
-    // Guard against React StrictMode / re-renders firing the verification request twice,
-    // which would otherwise show a false "invalid or expired" error on the second call.
     if (hasRun.current) return;
     hasRun.current = true;
 
@@ -37,21 +35,15 @@ const VerifyEmail = () => {
   }, [token]);
 
   return (
-    <div className="max-w-md mx-auto mt-16 p-6 bg-white shadow-md rounded-lg text-center">
-      <h2 className="text-2xl font-bold mb-6">Email Verification</h2>
+    <div className="max-w-md mx-auto px-6 py-20 text-center">
+      <h1 className="font-display text-3xl text-ink mb-8">Email Verification</h1>
 
-      {status === "verifying" && <p className="text-gray-500">Verifying your email...</p>}
-
-      {status === "success" && (
-        <p className="bg-green-100 text-green-700 text-sm p-2 rounded mb-4">{message}</p>
-      )}
-
-      {status === "error" && (
-        <p className="bg-red-100 text-red-600 text-sm p-2 rounded mb-4">{message}</p>
-      )}
+      {status === "verifying" && <p className="text-muted text-sm">Verifying your email...</p>}
+      {status === "success" && <p className="bg-green-50 text-green-700 text-sm p-3 mb-4">{message}</p>}
+      {status === "error" && <p className="bg-red-50 text-crimson text-sm p-3 mb-4">{message}</p>}
 
       {status !== "verifying" && (
-        <Link to="/" className="text-blue-600 hover:underline text-sm">
+        <Link to="/" className="text-sm text-ink hover:text-crimson transition-colors">
           Continue to FashionHub
         </Link>
       )}

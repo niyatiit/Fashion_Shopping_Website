@@ -2,6 +2,8 @@ import { useState } from "react";
 import axiosInstance from "../../api/axiosInstance";
 import useAuth from "../../hooks/useAuth";
 import Avatar from "./Avatar";
+const { user, fetchProfile, resendVerification } = useAuth();
+
 
 const ProfileTab = () => {
   const { user, fetchProfile } = useAuth();
@@ -11,6 +13,7 @@ const ProfileTab = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [resending, setResending] = useState(false);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -45,12 +48,37 @@ const ProfileTab = () => {
     }
   };
 
+  const handleResend = async () => {
+  try {
+    setResending(true);
+    await resendVerification();
+    setSuccess("Verification email sent — check your inbox.");
+  } catch (err) {
+    setError(err.response?.data?.message || "Could not resend verification email");
+  } finally {
+    setResending(false);
+    setTimeout(() => setSuccess(""), 3000);
+  }
+};
+
   return (
     <div>
       <h2 className="font-display text-2xl text-ink mb-8">My Profile</h2>
 
       {success && <p className="bg-green-50 text-green-700 text-sm p-3 mb-5">{success}</p>}
       {error && <p className="bg-red-50 text-crimson text-sm p-3 mb-5">{error}</p>}
+      {!user.isVerified && (
+  <div className="bg-sand/40 border border-sand text-sm p-4 mb-6 flex items-center justify-between gap-4">
+    <p className="text-ink">Your email isn't verified yet — check your inbox for the link.</p>
+    <button
+      onClick={handleResend}
+      disabled={resending}
+      className="shrink-0 border border-ink px-4 py-1.5 text-xs hover:bg-ink hover:text-ivory transition-colors disabled:opacity-50"
+    >
+      {resending ? "Sending..." : "Resend Link"}
+    </button>
+  </div>
+)}
 
       {!editing ? (
         <div className="border border-sand p-6">

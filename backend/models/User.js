@@ -23,6 +23,12 @@ const userSchema = new mongoose.Schema(
       public_id: { type: String },
     },
     addresses: [addressSchema],
+
+    isVerified: { type: Boolean, default: false },
+    verificationToken: { type: String },
+    verificationTokenExpire: { type: Date },
+    resetPasswordToken: { type: String },
+    resetPasswordExpire: { type: Date },
   },
   { timestamps: true }
 );
