@@ -1,6 +1,7 @@
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import Cart from "../models/Cart.js";
+import Coupon from "../models/Coupon.js";
 
 // @desc Create new order (COD or after Razorpay payment verified)
 // @route POST /api/orders
@@ -12,6 +13,8 @@ export const createOrder = async (req, res) => {
       paymentMethod,
       itemsPrice,
       shippingPrice,
+      couponCode,
+      discountAmount,
       totalPrice,
       paymentInfo, // only for Razorpay, empty for COD
     } = req.body;
@@ -19,17 +22,32 @@ export const createOrder = async (req, res) => {
     if (!orderItems || orderItems.length === 0) {
       return res.status(400).json({ message: "No order items provided" });
     }
+    if (!shippingAddress) {
+      return res.status(400).json({ message: "Shipping address is required" });
+    }
+    if (!["COD", "Razorpay"].includes(paymentMethod)) {
+      return res.status(400).json({ message: "Please select a valid payment method" });
+    }
 
-    // Verify stock availability and reduce stock
+    // Pass 1: validate every item exists and has enough stock BEFORE touching the database.
+    // This guarantees we never decrement stock for some items and then fail on a later one.
+    const products = [];
     for (const item of orderItems) {
       const product = await Product.findById(item.product);
       if (!product) {
         return res.status(404).json({ message: `Product not found: ${item.name}` });
       }
       if (product.stock < item.quantity) {
-        return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
+        return res.status(400).json({
+          message: `Only ${product.stock} unit(s) of "${product.name}" are in stock`,
+        });
       }
-      product.stock -= item.quantity;
+      products.push({ product, quantity: item.quantity });
+    }
+
+    // Pass 2: everything checked out — now actually decrement stock.
+    for (const { product, quantity } of products) {
+      product.stock -= quantity;
       await product.save();
     }
 
@@ -43,8 +61,19 @@ export const createOrder = async (req, res) => {
       paidAt: paymentMethod === "Razorpay" ? Date.now() : null,
       itemsPrice,
       shippingPrice,
+      couponCode: couponCode || undefined,
+      discountAmount: discountAmount || 0,
       totalPrice,
     });
+
+    // Track coupon usage (best-effort — a failure here shouldn't block the order)
+    if (couponCode) {
+      try {
+        await Coupon.findOneAndUpdate({ code: couponCode.toUpperCase() }, { $inc: { usedCount: 1 } });
+      } catch (couponErr) {
+        console.error("Could not update coupon usage:", couponErr.message);
+      }
+    }
 
     // Clear user's cart after successful order
     await Cart.findOneAndUpdate(
