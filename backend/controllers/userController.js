@@ -37,7 +37,6 @@ export const updateUserProfile = async (req, res) => {
 
     if (name) user.name = name;
 
-    // Profile image (set by uploadMiddleware in the route below)
     if (req.body.profileImage) {
       if (user.profileImage?.public_id) {
         await cloudinary.uploader.destroy(user.profileImage.public_id);

@@ -24,14 +24,14 @@ const couponSchema = new mongoose.Schema(
       default: 0,
     },
     maxDiscount: {
-      type: Number, // optional cap, only meaningful for percentage coupons
+      type: Number,
     },
     expiryDate: {
       type: Date,
       required: true,
     },
     usageLimit: {
-      type: Number, // optional overall usage cap; leave blank for unlimited
+      type: Number,
     },
     usedCount: {
       type: Number,

@@ -5,14 +5,14 @@ import razorpayInstance from "../config/razorpay.js";
 // @route POST /api/payment/create-order
 export const createRazorpayOrder = async (req, res) => {
   try {
-    const { amount } = req.body; // amount in rupees, sent from frontend cart total
+    const { amount } = req.body;
 
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: "Valid amount is required" });
     }
 
     const options = {
-      amount: Math.round(amount * 100), // Razorpay needs amount in paise
+      amount: Math.round(amount * 100),
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
     };
@@ -23,7 +23,7 @@ export const createRazorpayOrder = async (req, res) => {
       orderId: order.id,
       amount: order.amount,
       currency: order.currency,
-      key: process.env.RAZORPAY_KEY_ID, // frontend needs the public key id
+      key: process.env.RAZORPAY_KEY_ID,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -53,7 +53,6 @@ export const verifyRazorpayPayment = async (req, res) => {
       return res.status(400).json({ message: "Payment verification failed. Possible tampering detected." });
     }
 
-    // Signature valid — payment is genuine
     res.json({
       success: true,
       message: "Payment verified successfully",

@@ -2,7 +2,6 @@ import Coupon from "../models/Coupon.js";
 
 // @desc Validate a coupon code against the current cart total and return the discount
 // @route POST /api/coupons/apply
-// @access Private
 export const applyCoupon = async (req, res) => {
   try {
     const { code, cartTotal } = req.body;
@@ -39,7 +38,6 @@ export const applyCoupon = async (req, res) => {
     if (coupon.discountType === "percentage" && coupon.maxDiscount) {
       discountAmount = Math.min(discountAmount, coupon.maxDiscount);
     }
-    // A coupon can never discount more than the cart is worth
     discountAmount = Math.round(Math.min(discountAmount, cartTotal));
 
     res.json({

@@ -16,7 +16,7 @@ export const createOrder = async (req, res) => {
       couponCode,
       discountAmount,
       totalPrice,
-      paymentInfo, // only for Razorpay, empty for COD
+      paymentInfo,
     } = req.body;
 
     if (!orderItems || orderItems.length === 0) {
@@ -29,8 +29,6 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Please select a valid payment method" });
     }
 
-    // Pass 1: validate every item exists and has enough stock BEFORE touching the database.
-    // This guarantees we never decrement stock for some items and then fail on a later one.
     const products = [];
     for (const item of orderItems) {
       const product = await Product.findById(item.product);
@@ -45,7 +43,6 @@ export const createOrder = async (req, res) => {
       products.push({ product, quantity: item.quantity });
     }
 
-    // Pass 2: everything checked out — now actually decrement stock.
     for (const { product, quantity } of products) {
       product.stock -= quantity;
       await product.save();
@@ -57,7 +54,7 @@ export const createOrder = async (req, res) => {
       shippingAddress,
       paymentMethod,
       paymentInfo: paymentInfo || {},
-      isPaid: paymentMethod === "Razorpay", // Razorpay orders reach here only after verification
+      isPaid: paymentMethod === "Razorpay",
       paidAt: paymentMethod === "Razorpay" ? Date.now() : null,
       itemsPrice,
       shippingPrice,
@@ -66,7 +63,6 @@ export const createOrder = async (req, res) => {
       totalPrice,
     });
 
-    // Track coupon usage (best-effort — a failure here shouldn't block the order)
     if (couponCode) {
       try {
         await Coupon.findOneAndUpdate({ code: couponCode.toUpperCase() }, { $inc: { usedCount: 1 } });
@@ -75,7 +71,6 @@ export const createOrder = async (req, res) => {
       }
     }
 
-    // Clear user's cart after successful order
     await Cart.findOneAndUpdate(
       { user: req.user._id },
       { items: [], totalPrice: 0 }
@@ -171,7 +166,6 @@ export const cancelOrder = async (req, res) => {
 
     order.orderStatus = "Cancelled";
 
-    // Restock products
     for (const item of order.orderItems) {
       await Product.findByIdAndUpdate(item.product, {
         $inc: { stock: item.quantity },
