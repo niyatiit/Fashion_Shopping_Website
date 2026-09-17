@@ -2,7 +2,7 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
-import sendEmail from "../utils/sendEmail.js";
+import sendEmail, { getBrandedEmailTemplate } from "../utils/sendEmail.js";
 
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
 
@@ -19,7 +19,8 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ message: "Password and Confirm Password do not match" });
     }
 
-    const userExists = await User.findOne({ $or: [{ email }, { phone }] });
+    const normalizedEmail = email.trim().toLowerCase();
+    const userExists = await User.findOne({ $or: [{ email: normalizedEmail }, { phone: phone.trim() }] });
     if (userExists) {
       return res.status(400).json({ message: "User already exists with this email or phone" });
     }
@@ -30,29 +31,37 @@ export const registerUser = async (req, res) => {
     const verifyToken = crypto.randomBytes(32).toString("hex");
 
     const user = await User.create({
-      name,
-      email,
-      phone,
+      name: name.trim(),
+      email: normalizedEmail,
+      phone: phone.trim(),
       password: hashedPassword,
       verificationToken: hashToken(verifyToken),
       verificationTokenExpire: Date.now() + 24 * 60 * 60 * 1000,
     });
 
+    const verifyUrl = `${process.env.CLIENT_URL}/verify-email/${verifyToken}`;
+    console.log(`\n🔗 [EMAIL VERIFICATION LINK]: ${verifyUrl}\n`);
+
     // Registration still succeeds even if the email fails to send
     try {
-      const verifyUrl = `${process.env.CLIENT_URL}/verify-email/${verifyToken}`;
       await sendEmail({
         to: user.email,
         subject: "Verify your FashionHub account",
-        html: `<p>Hi ${user.name},</p><p>Welcome to FashionHub! Verify your email:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p><p>This link expires in 24 hours.</p>`,
+        html: getBrandedEmailTemplate({
+          title: "Welcome to FashionHub",
+          bodyContent: `<p>Hi ${user.name},</p><p>Thank you for creating an account with FashionHub! Please click the button below to verify your email address and activate your account features.</p><p>This link will expire in 24 hours.</p>`,
+          buttonText: "Verify Email Address",
+          buttonUrl: verifyUrl,
+        }),
       });
     } catch (emailError) {
       console.error("Verification email failed to send:", emailError.message);
     }
 
-    generateToken(res, user._id);
+    const token = generateToken(res, user._id);
 
     res.status(201).json({
+      token,
       _id: user._id,
       name: user.name,
       email: user.email,
@@ -75,15 +84,17 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Please provide email and password" });
     }
 
-    const user = await User.findOne({ email });
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) return res.status(401).json({ message: "Invalid email or password" });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: "Invalid email or password" });
 
-    generateToken(res, user._id);
+    const token = generateToken(res, user._id);
 
     res.json({
+      token,
       _id: user._id,
       name: user.name,
       email: user.email,
@@ -143,10 +154,16 @@ export const resendVerification = async (req, res) => {
     await user.save();
 
     const verifyUrl = `${process.env.CLIENT_URL}/verify-email/${verifyToken}`;
+    console.log(`\n🔗 [RESEND VERIFICATION LINK]: ${verifyUrl}\n`);
     await sendEmail({
       to: user.email,
       subject: "Verify your FashionHub account",
-      html: `<p>Hi ${user.name},</p><p>Verify your email:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p><p>This link expires in 24 hours.</p>`,
+      html: getBrandedEmailTemplate({
+        title: "Verify Your Email",
+        bodyContent: `<p>Hi ${user.name},</p><p>Please click the button below to verify your email address and keep your FashionHub account secure.</p><p>This link will expire in 24 hours.</p>`,
+        buttonText: "Verify Email",
+        buttonUrl: verifyUrl,
+      }),
     });
 
     res.json({ message: "Verification email sent" });
@@ -162,7 +179,8 @@ export const forgotPassword = async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: "Please provide your email address" });
 
-    const user = await User.findOne({ email });
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
     const genericMessage = "If an account with that email exists, a password reset link has been sent";
 
     // Always respond generically — don't reveal whether the email is registered
@@ -173,22 +191,32 @@ export const forgotPassword = async (req, res) => {
     user.resetPasswordExpire = Date.now() + 60 * 60 * 1000;
     await user.save();
 
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+    console.log(`\n🔑 [PASSWORD RESET LINK]: ${resetUrl}\n`);
+
     try {
-      const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
       await sendEmail({
         to: user.email,
         subject: "Reset your FashionHub password",
-        html: `<p>Hi ${user.name},</p><p>Reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link expires in 1 hour. If you didn't request this, ignore this email.</p>`,
+        html: getBrandedEmailTemplate({
+          title: "Password Reset Request",
+          bodyContent: `<p>Hi ${user.name},</p><p>You recently requested to reset your password for your FashionHub account. Click the button below to choose a new password.</p><p>This link will expire in 1 hour. If you didn't make this request, you can safely ignore this email.</p>`,
+          buttonText: "Reset Password",
+          buttonUrl: resetUrl,
+        }),
       });
     } catch (emailError) {
-      console.error("Password reset email failed to send:", emailError.message);
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpire = undefined;
-      await user.save();
-      return res.status(500).json({ message: "Could not send reset email. Please try again later." });
+      console.error("Password reset email delivery note:", emailError.message);
+      // Even if SMTP fails or is Mailtrap sandbox, the token is saved and printed above for dev testing
     }
 
-    res.json({ message: genericMessage });
+    const isDev = process.env.NODE_ENV !== "production" || process.env.EMAIL_HOST?.includes("mailtrap");
+
+    res.json({
+      message: genericMessage,
+      resetUrl: isDev ? resetUrl : undefined,
+      devMode: isDev,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -2,13 +2,11 @@ import { useState } from "react";
 import axiosInstance from "../../api/axiosInstance";
 import useAuth from "../../hooks/useAuth";
 import Avatar from "./Avatar";
-const { user, fetchProfile, resendVerification } = useAuth();
-
 
 const ProfileTab = () => {
-  const { user, fetchProfile } = useAuth();
+  const { user, fetchProfile, resendVerification } = useAuth();
   const [editing, setEditing] = useState(false);
-  const [formData, setFormData] = useState({ name: user.name, email: user.email, phone: user.phone });
+  const [formData, setFormData] = useState({ name: user?.name || "", email: user?.email || "", phone: user?.phone || "" });
   const [imageFile, setImageFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -33,9 +31,7 @@ const ProfileTab = () => {
       data.append("phone", formData.phone);
       if (imageFile) data.append("profileImage", imageFile);
 
-      await axiosInstance.put("/users/profile", data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await axiosInstance.put("/users/profile", data);
       await fetchProfile();
       setSuccess("Profile updated successfully");
       setEditing(false);

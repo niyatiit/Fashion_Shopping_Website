@@ -2,6 +2,7 @@ import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 import Cart from "../models/Cart.js";
 import Coupon from "../models/Coupon.js";
+import sendEmail, { getBrandedEmailTemplate } from "../utils/sendEmail.js";
 
 // @desc Create new order (COD or after Razorpay payment verified)
 // @route POST /api/orders
@@ -29,8 +30,14 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "Please select a valid payment method" });
     }
 
+    // Ensure all items have a valid image fallback so validation never fails
+    const sanitizedOrderItems = orderItems.map((item) => ({
+      ...item,
+      image: item.image || "https://placehold.co/400x500?text=No+Image",
+    }));
+
     const products = [];
-    for (const item of orderItems) {
+    for (const item of sanitizedOrderItems) {
       const product = await Product.findById(item.product);
       if (!product) {
         return res.status(404).json({ message: `Product not found: ${item.name}` });
@@ -50,7 +57,7 @@ export const createOrder = async (req, res) => {
 
     const order = await Order.create({
       user: req.user._id,
-      orderItems,
+      orderItems: sanitizedOrderItems,
       shippingAddress,
       paymentMethod,
       paymentInfo: paymentInfo || {},
@@ -75,6 +82,61 @@ export const createOrder = async (req, res) => {
       { user: req.user._id },
       { items: [], totalPrice: 0 }
     );
+
+    // Send confirmation email asynchronously (does not block response)
+    (async () => {
+      try {
+        const orderShortId = order._id.toString().slice(-8).toUpperCase();
+        const itemsListHtml = sanitizedOrderItems
+          .map(
+            (item) =>
+              `<tr>
+                <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${item.name} (${item.quantity}x) ${item.size ? `· Size: ${item.size}` : ""}</td>
+                <td style="padding: 8px 0; text-align: right; border-bottom: 1px solid #eee;">₹${item.price * item.quantity}</td>
+              </tr>`
+          )
+          .join("");
+
+        const emailContent = `
+          <p>Hi ${shippingAddress.fullName || req.user.name},</p>
+          <p>Thank you for your purchase! We're preparing your order <strong>#${orderShortId}</strong>.</p>
+          <div style="background: #faf9f7; border: 1px solid #e7e5e0; padding: 16px; margin: 20px 0;">
+            <p style="margin: 0 0 8px 0; font-weight: 600;">Order Summary:</p>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+              ${itemsListHtml}
+              <tr>
+                <td style="padding: 8px 0; color: #76726d;">Shipping:</td>
+                <td style="padding: 8px 0; text-align: right; color: #76726d;">${shippingPrice === 0 ? "Free" : `₹${shippingPrice}`}</td>
+              </tr>
+              ${discountAmount > 0 ? `<tr><td style="padding: 8px 0; color: #8C1D18;">Discount:</td><td style="padding: 8px 0; text-align: right; color: #8C1D18;">-₹${discountAmount}</td></tr>` : ""}
+              <tr style="font-weight: 600; font-size: 16px;">
+                <td style="padding: 12px 0 0 0; border-top: 2px solid #161412;">Total Paid:</td>
+                <td style="padding: 12px 0 0 0; text-align: right; border-top: 2px solid #161412;">₹${totalPrice}</td>
+              </tr>
+            </table>
+          </div>
+          <p style="font-size: 13px; color: #76726d;">
+            <strong>Shipping to:</strong><br/>
+            ${shippingAddress.fullName}<br/>
+            ${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.state} - ${shippingAddress.pincode}<br/>
+            Phone: ${shippingAddress.phone}
+          </p>
+        `;
+
+        await sendEmail({
+          to: req.user.email,
+          subject: `Order Confirmed: #${orderShortId}`,
+          html: getBrandedEmailTemplate({
+            title: `Order #${orderShortId} Confirmed!`,
+            bodyContent: emailContent,
+            buttonText: "View Order Details",
+            buttonUrl: `${process.env.CLIENT_URL}/orders/${order._id}`,
+          }),
+        });
+      } catch (mailErr) {
+        console.error("Order confirmation email error:", mailErr.message);
+      }
+    })();
 
     res.status(201).json(order);
   } catch (error) {

@@ -1,6 +1,34 @@
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import cloudinary from "../config/cloudinary.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsDir = path.join(__dirname, "..", "uploads");
+
+const removeImageFile = async (publicId) => {
+  if (!publicId) return;
+  if (publicId.startsWith("local_")) {
+    const filename = publicId.replace("local_", "");
+    const fullPath = path.join(uploadsDir, filename);
+    if (fs.existsSync(fullPath)) {
+      try {
+        fs.unlinkSync(fullPath);
+      } catch (err) {
+        console.warn("Could not delete local file:", err.message);
+      }
+    }
+  } else {
+    try {
+      await cloudinary.uploader.destroy(publicId);
+    } catch (err) {
+      console.warn("Could not destroy Cloudinary image:", err.message);
+    }
+  }
+};
 
 // @desc Get logged-in user's profile
 // @route GET /api/users/profile
@@ -39,7 +67,7 @@ export const updateUserProfile = async (req, res) => {
 
     if (req.body.profileImage) {
       if (user.profileImage?.public_id) {
-        await cloudinary.uploader.destroy(user.profileImage.public_id);
+        await removeImageFile(user.profileImage.public_id);
       }
       user.profileImage = req.body.profileImage;
     }

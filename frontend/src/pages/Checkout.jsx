@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 import useAuth from "../hooks/useAuth";
@@ -26,13 +26,25 @@ const Checkout = () => {
     () => addresses.find((a) => a.isDefault)?._id || addresses[0]?._id || ""
   );
 
+  // Synchronize saved addresses whenever user profile finishes loading or updating
+  useEffect(() => {
+    if (user?.addresses) {
+      setAddresses(user.addresses);
+      setSelectedAddress((prev) => {
+        if (prev && user.addresses.some((a) => a._id === prev)) return prev;
+        const defaultAddr = user.addresses.find((a) => a.isDefault);
+        return defaultAddr?._id || user.addresses[0]?._id || "";
+      });
+    }
+  }, [user]);
+
   const [addressMode, setAddressMode] = useState(null); // null | "add" | editing addressId
   const [addressForm, setAddressForm] = useState(emptyAddressForm);
   const [addressSaving, setAddressSaving] = useState(false);
   const [addressError, setAddressError] = useState("");
 
   const [couponInput, setCouponInput] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("COD");
+  const [paymentMethod, setPaymentMethod] = useState("Razorpay");
   const [placing, setPlacing] = useState(false);
   const [placingStage, setPlacingStage] = useState(""); // human-readable status while placing
   const [error, setError] = useState("");

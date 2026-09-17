@@ -24,19 +24,25 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (formData) => {
     const { data } = await axiosInstance.post("/auth/register", formData);
+    if (data.token) localStorage.setItem("token", data.token);
     setUser(data);
     return data;
   };
 
   const login = async (formData) => {
     const { data } = await axiosInstance.post("/auth/login", formData);
+    if (data.token) localStorage.setItem("token", data.token);
     setUser(data);
     return data;
   };
 
   const logout = async () => {
-    await axiosInstance.post("/auth/logout");
-    setUser(null);
+    try {
+      await axiosInstance.post("/auth/logout");
+    } finally {
+      localStorage.removeItem("token");
+      setUser(null);
+    }
   };
 
   const forgotPassword = async (email) => {

@@ -16,6 +16,15 @@ export const getCart = async (req, res) => {
 
     if (!cart) {
       cart = await Cart.create({ user: req.user._id, items: [], totalPrice: 0 });
+      return res.json(cart);
+    }
+
+    // Automatically prune items where product no longer exists in DB
+    const validItems = cart.items.filter((item) => item.product != null);
+    if (validItems.length !== cart.items.length) {
+      cart.items = validItems;
+      cart.totalPrice = calculateTotal(cart.items);
+      await cart.save();
     }
 
     res.json(cart);

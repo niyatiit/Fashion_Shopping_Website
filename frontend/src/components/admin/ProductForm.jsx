@@ -56,13 +56,9 @@ const ProductForm = ({ onSuccess, onCancel, initialProduct = null }) => {
       images.forEach((img) => data.append("images", img));
 
       if (isEditMode) {
-        await axiosInstance.put(`/products/${initialProduct._id}`, data, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await axiosInstance.put(`/products/${initialProduct._id}`, data);
       } else {
-        await axiosInstance.post("/products", data, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await axiosInstance.post("/products", data);
       }
 
       onSuccess();

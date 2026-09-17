@@ -18,12 +18,16 @@ router.get("/profile", protect, getUserProfile);
 router.put(
   "/profile",
   protect,
-  upload.single("profileImage"),
   (req, res, next) => {
-    if (req.file) {
-      req.body.profileImage = { url: req.file.path, public_id: req.file.filename };
-    }
-    next();
+    upload.single("profileImage")(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({ message: err.message || "Profile image upload failed" });
+      }
+      if (req.file) {
+        req.body.profileImage = { url: req.file.path, public_id: req.file.filename };
+      }
+      next();
+    });
   },
   updateUserProfile
 );

@@ -1,4 +1,12 @@
 import mongoose from "mongoose";
+import dns from "dns";
+
+// Fix for Windows/Node DNS SRV resolution querySrv ECONNREFUSED with MongoDB Atlas
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+} catch (dnsErr) {
+  console.warn("Could not set custom DNS servers:", dnsErr.message);
+}
 
 const connectDB = async () => {
   try {

@@ -12,6 +12,15 @@ import upload from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
+const handleUpload = (req, res, next) => {
+  upload.array("images", 5)(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ message: err.message || "Image upload failed" });
+    }
+    next();
+  });
+};
+
 // Helper to convert multer's uploaded files into our {url, public_id} format
 const formatImages = (req, res, next) => {
   if (req.files && req.files.length > 0) {
@@ -27,8 +36,8 @@ router.get("/", getAllProducts);
 router.get("/best-sellers", getBestSellers);
 router.get("/:id", getProductById);
 
-router.post("/", protect, admin, upload.array("images", 5), formatImages, createProduct);
-router.put("/:id", protect, admin, upload.array("images", 5), formatImages, updateProduct);
+router.post("/", protect, admin, handleUpload, formatImages, createProduct);
+router.put("/:id", protect, admin, handleUpload, formatImages, updateProduct);
 router.delete("/:id", protect, admin, deleteProduct);
 
 export default router;

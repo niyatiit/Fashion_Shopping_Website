@@ -15,6 +15,14 @@ const seedAdmin = async () => {
 
     const existingAdmin = await User.findOne({ email: ADMIN_EMAIL });
 
+    // Also promote niyatipatel0701@gmail.com to admin if exists
+    const ownerUser = await User.findOne({ email: "niyatipatel0701@gmail.com" });
+    if (ownerUser && ownerUser.role !== "admin") {
+      ownerUser.role = "admin";
+      await ownerUser.save();
+      console.log(`✅ User "niyatipatel0701@gmail.com" promoted to admin.`);
+    }
+
     if (existingAdmin) {
       if (existingAdmin.role !== "admin") {
         existingAdmin.role = "admin";
