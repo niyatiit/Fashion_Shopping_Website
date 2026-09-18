@@ -111,7 +111,11 @@ const OrderDetails = () => {
           <h2 className="font-display text-lg text-ink mb-3">Payment</h2>
           <p className="text-sm text-muted">
             Method:{" "}
-            {order.paymentMethod === "COD" ? "Cash on Delivery" : "Paid Online"}
+            {order.paymentMethod === "COD"
+              ? "Cash on Delivery"
+              : order.paymentMethod === "UPI"
+              ? "Paid via UPI"
+              : "Paid Online"}
             <br />
             Status: {order.isPaid ? "Paid" : "Pending"}
           </p>

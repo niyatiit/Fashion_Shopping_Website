@@ -26,7 +26,7 @@ export const createOrder = async (req, res) => {
     if (!shippingAddress) {
       return res.status(400).json({ message: "Shipping address is required" });
     }
-    if (!["COD", "Razorpay", "Card", "Online"].includes(paymentMethod)) {
+    if (!["COD", "Razorpay", "UPI", "Card", "Online"].includes(paymentMethod)) {
       return res.status(400).json({ message: "Please select a valid payment method" });
     }
 
@@ -55,7 +55,7 @@ export const createOrder = async (req, res) => {
       await product.save();
     }
 
-    const isOnlinePaid = ["Razorpay", "Card", "Online"].includes(paymentMethod);
+    const isOnlinePaid = ["Razorpay", "UPI", "Card", "Online"].includes(paymentMethod);
 
     const order = await Order.create({
       user: req.user._id,

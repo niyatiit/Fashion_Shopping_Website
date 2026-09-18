@@ -64,6 +64,11 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const changePassword = async (passwordData) => {
+    const { data } = await axiosInstance.put("/users/change-password", passwordData);
+    return data;
+  };
+
   const resendVerification = async () => {
     const { data } = await axiosInstance.post("/auth/resend-verification");
     return data;
@@ -80,6 +85,7 @@ export const AuthProvider = ({ children }) => {
         fetchProfile,
         forgotPassword,
         resetPassword,
+        changePassword,
         verifyEmail,
         resendVerification,
       }}

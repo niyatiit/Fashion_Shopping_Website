@@ -58,43 +58,16 @@ const Checkout = () => {
   const [addressError, setAddressError] = useState("");
 
   const [couponInput, setCouponInput] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("Card");
-  const [cardForm, setCardForm] = useState({
-    cardNumber: "",
-    cardHolder: user?.name || "",
-    expiry: "",
-    cvv: "",
-  });
+  const [paymentMethod, setPaymentMethod] = useState("UPI");
+  const [upiTab, setUpiTab] = useState("qr"); // "qr" | "id"
+  const [upiId, setUpiId] = useState("");
   const [placing, setPlacing] = useState(false);
   const [placingStage, setPlacingStage] = useState(""); // human-readable status while placing
   const [error, setError] = useState("");
 
-  const handleCardNumberChange = (e) => {
-    let val = e.target.value.replace(/\D/g, "").slice(0, 16);
-    val = val.replace(/(\d{4})(?=\d)/g, "$1 ");
-    setCardForm((prev) => ({ ...prev, cardNumber: val }));
-  };
-
-  const handleExpiryChange = (e) => {
-    let val = e.target.value.replace(/\D/g, "").slice(0, 4);
-    if (val.length >= 3) {
-      val = `${val.slice(0, 2)}/${val.slice(2)}`;
-    }
-    setCardForm((prev) => ({ ...prev, expiry: val }));
-  };
-
-  const handleCvvChange = (e) => {
-    const val = e.target.value.replace(/\D/g, "").slice(0, 4);
-    setCardForm((prev) => ({ ...prev, cvv: val }));
-  };
-
-  const fillDemoCard = () => {
-    setCardForm({
-      cardNumber: "4111 1111 1111 1111",
-      cardHolder: user?.name || "Demo Shopper",
-      expiry: "12/28",
-      cvv: "123",
-    });
+  const fillDemoUpi = (handle = "@okhdfcbank") => {
+    const base = user?.email ? user.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "") : "buyer";
+    setUpiId(`${base || "demo.shopper"}${handle}`);
     setError("");
   };
 
@@ -258,31 +231,27 @@ const Checkout = () => {
         return;
       }
 
-      if (paymentMethod === "Card") {
-        const rawCard = cardForm.cardNumber.replace(/\s/g, "");
-        if (!rawCard || rawCard.length < 12) {
-          setError("Please enter a valid card number (or click '⚡ Fill Demo Card')");
-          setPlacing(false);
-          return;
-        }
-        if (!cardForm.expiry || cardForm.expiry.length < 4) {
-          setError("Please enter an expiry date (MM/YY)");
-          setPlacing(false);
-          return;
-        }
-        if (!cardForm.cvv || cardForm.cvv.length < 3) {
-          setError("Please enter card CVV");
-          setPlacing(false);
-          return;
+      if (paymentMethod === "UPI") {
+        if (upiTab === "id") {
+          if (!upiId.trim()) {
+            setError("Please enter your UPI ID (or click '⚡ Fill Demo UPI')");
+            setPlacing(false);
+            return;
+          }
+          if (!upiId.includes("@")) {
+            setError("UPI ID must contain '@' (e.g. mobile@upi or name@okhdfcbank)");
+            setPlacing(false);
+            return;
+          }
         }
 
-        setPlacingStage("Authorizing dummy card payment...");
-        await new Promise((r) => setTimeout(r, 700));
+        setPlacingStage("Verifying UPI payment...");
+        await new Promise((r) => setTimeout(r, 600));
 
         await placeOrder({
-          cardLast4: rawCard.slice(-4),
-          cardBrand: "Visa (Demo)",
-          transactionId: `tx_card_dummy_${Date.now()}`,
+          upiId: upiTab === "id" ? upiId.trim() : "fashionhub@upi",
+          transactionId: `upi_tx_${Date.now()}`,
+          razorpay_payment_id: `pay_upi_${Date.now()}`,
         });
         return;
       }
@@ -291,7 +260,7 @@ const Checkout = () => {
       setPlacingStage("Loading payment gateway...");
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
-        setError("External payment script was blocked by browser or adblocker. Please use the 'Credit / Debit Card' option for test checkout.");
+        setError("External payment script was blocked by browser or adblocker. Please select 'UPI Payment' or 'Cash on Delivery'.");
         setPlacing(false);
         setPlacingStage("");
         return;
@@ -478,20 +447,20 @@ const Checkout = () => {
               <button
                 type="button"
                 onClick={() => {
-                  setPaymentMethod("Razorpay");
+                  setPaymentMethod("UPI");
                   setError("");
                 }}
                 className={`text-left border p-4 text-sm transition-all ${
-                  paymentMethod === "Razorpay" ? "border-ink bg-sand/30 shadow-sm" : "border-sand hover:border-ink/60"
+                  paymentMethod === "UPI" ? "border-ink bg-sand/30 shadow-sm ring-1 ring-ink" : "border-sand hover:border-ink/60"
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-ink font-medium">Razorpay Gateway</p>
-                  <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium">
-                    All-in-One
+                  <p className="text-ink font-medium">UPI Payment</p>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-medium">
+                    Fast & Instant
                   </span>
                 </div>
-                <p className="text-muted text-xs">Credit/Debit Cards, UPI, Netbanking & Wallets</p>
+                <p className="text-muted text-xs">GPay, PhonePe, Paytm, QR Code</p>
               </button>
 
               <button
@@ -501,103 +470,160 @@ const Checkout = () => {
                   setError("");
                 }}
                 className={`text-left border p-4 text-sm transition-all ${
-                  paymentMethod === "COD" ? "border-ink bg-sand/30 shadow-sm" : "border-sand hover:border-ink/60"
+                  paymentMethod === "COD" ? "border-ink bg-sand/30 shadow-sm ring-1 ring-ink" : "border-sand hover:border-ink/60"
                 }`}
               >
-                <p className="text-ink font-medium mb-1">Cash on Delivery</p>
-                <p className="text-muted text-xs">Pay in cash when your order arrives</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-ink font-medium">Cash on Delivery</p>
+                  <span className="text-[10px] bg-stone-100 text-stone-700 px-1.5 py-0.5 rounded font-medium">
+                    COD
+                  </span>
+                </div>
+                <p className="text-muted text-xs">Pay in cash when order arrives</p>
               </button>
 
               <button
                 type="button"
                 onClick={() => {
-                  setPaymentMethod("Card");
+                  setPaymentMethod("Razorpay");
                   setError("");
                 }}
                 className={`text-left border p-4 text-sm transition-all ${
-                  paymentMethod === "Card" ? "border-ink bg-sand/30 shadow-sm" : "border-sand hover:border-ink/60"
+                  paymentMethod === "Razorpay" ? "border-ink bg-sand/30 shadow-sm ring-1 ring-ink" : "border-sand hover:border-ink/60"
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-ink font-medium">Direct Demo Card</p>
-                  <span className="text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded font-medium">
-                    Instant Test
+                  <p className="text-ink font-medium">Razorpay Gateway</p>
+                  <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium">
+                    Online
                   </span>
                 </div>
-                <p className="text-muted text-xs">1-Click test card (bypasses modal)</p>
+                <p className="text-muted text-xs">Netbanking, UPI & Wallets</p>
               </button>
             </div>
 
-            {/* Direct Card Form for Online Payment */}
-            {paymentMethod === "Card" && (
-              <div className="border border-sand bg-white p-5 text-sm space-y-4 rounded-sm shadow-sm">
+            {/* UPI Payment Interface */}
+            {paymentMethod === "UPI" && (
+              <div className="border border-sand bg-white p-5 text-sm rounded-sm shadow-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-sand pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-ink">Enter Card Details</span>
-                    <span className="text-xs text-muted">(Dummy Test Card Supported)</span>
+                  <div>
+                    <span className="font-medium text-ink">Instant UPI Payment</span>
+                    <p className="text-xs text-muted mt-0.5">Pay via any UPI App</p>
                   </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted">
+                    <span className="bg-sand/60 px-2 py-0.5 rounded font-mono text-[11px]">GPay</span>
+                    <span className="bg-sand/60 px-2 py-0.5 rounded font-mono text-[11px]">PhonePe</span>
+                    <span className="bg-sand/60 px-2 py-0.5 rounded font-mono text-[11px]">Paytm</span>
+                    <span className="bg-sand/60 px-2 py-0.5 rounded font-mono text-[11px]">BHIM</span>
+                  </div>
+                </div>
+
+                {/* UPI Sub-tabs */}
+                <div className="flex border-b border-sand text-xs font-medium">
                   <button
                     type="button"
-                    onClick={fillDemoCard}
-                    className="text-xs bg-sand px-3 py-1.5 hover:bg-ink hover:text-ivory transition-colors font-medium rounded-sm"
+                    onClick={() => setUpiTab("qr")}
+                    className={`pb-2 px-3 border-b-2 transition-colors ${
+                      upiTab === "qr"
+                        ? "border-crimson text-crimson"
+                        : "border-transparent text-muted hover:text-ink"
+                    }`}
                   >
-                    ⚡ Fill Demo Card
+                    📱 Scan UPI QR Code
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUpiTab("id")}
+                    className={`pb-2 px-3 border-b-2 transition-colors ${
+                      upiTab === "id"
+                        ? "border-crimson text-crimson"
+                        : "border-transparent text-muted hover:text-ink"
+                    }`}
+                  >
+                    ⚡ Enter UPI ID / VPA
                   </button>
                 </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs text-muted mb-1">Card Number</label>
-                    <input
-                      type="text"
-                      placeholder="4111 1111 1111 1111"
-                      value={cardForm.cardNumber}
-                      onChange={handleCardNumberChange}
-                      className="w-full border border-sand px-3 py-2 text-sm font-mono tracking-wider focus:outline-none focus:border-crimson"
-                      maxLength={19}
-                    />
-                  </div>
+                {/* QR Code Tab */}
+                {upiTab === "qr" && (
+                  <div className="flex flex-col sm:flex-row items-center gap-6 py-2">
+                    <div className="p-3 bg-white border border-sand rounded-sm shadow-inner shrink-0 flex flex-col items-center">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=upi://pay?pa=fashionhub@upi%26pn=FashionHub%26am=${total}%26cu=INR`}
+                        alt="FashionHub UPI QR Code"
+                        className="w-36 h-36 object-contain"
+                      />
+                      <span className="text-[10px] text-muted tracking-wide mt-1.5 uppercase font-medium">
+                        Scan to Pay {formatPrice(total)}
+                      </span>
+                    </div>
 
-                  <div>
-                    <label className="block text-xs text-muted mb-1">Name on Card</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. John Doe"
-                      value={cardForm.cardHolder}
-                      onChange={(e) => setCardForm({ ...cardForm, cardHolder: e.target.value })}
-                      className="w-full border border-sand px-3 py-2 text-sm focus:outline-none focus:border-crimson"
-                    />
-                  </div>
+                    <div className="flex-1 space-y-2.5 text-center sm:text-left">
+                      <div>
+                        <p className="text-xs text-muted">UPI ID / VPA:</p>
+                        <p className="font-mono text-sm text-ink font-semibold select-all">
+                          fashionhub@upi
+                        </p>
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs text-muted mb-1">Expiry Date (MM/YY)</label>
+                      <div className="text-xs text-muted space-y-1">
+                        <p>1. Open GPay, PhonePe, Paytm, or any UPI app.</p>
+                        <p>2. Scan this QR code and approve ₹{total}.</p>
+                        <p>3. Click <strong>"Pay via UPI"</strong> below to confirm your order.</p>
+                      </div>
+
+                      <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 text-[11px] px-2.5 py-1 rounded border border-emerald-200">
+                        <span>✓</span>
+                        <span>Zero transaction fees · Instant order confirmation</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Enter UPI ID Tab */}
+                {upiTab === "id" && (
+                  <div className="space-y-3 py-1">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs text-muted">Enter Your Virtual Payment Address (VPA)</label>
+                      <button
+                        type="button"
+                        onClick={() => fillDemoUpi()}
+                        className="text-xs text-crimson hover:underline font-medium"
+                      >
+                        ⚡ Fill Demo UPI
+                      </button>
+                    </div>
+
+                    <div className="relative">
                       <input
                         type="text"
-                        placeholder="12/28"
-                        value={cardForm.expiry}
-                        onChange={handleExpiryChange}
-                        className="w-full border border-sand px-3 py-2 text-sm font-mono focus:outline-none focus:border-crimson"
-                        maxLength={5}
+                        placeholder="yourname@okhdfcbank"
+                        value={upiId}
+                        onChange={(e) => setUpiId(e.target.value)}
+                        className="w-full border border-sand px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-crimson"
                       />
                     </div>
-                    <div>
-                      <label className="block text-xs text-muted mb-1">CVV</label>
-                      <input
-                        type="password"
-                        placeholder="123"
-                        value={cardForm.cvv}
-                        onChange={handleCvvChange}
-                        className="w-full border border-sand px-3 py-2 text-sm font-mono focus:outline-none focus:border-crimson"
-                        maxLength={4}
-                      />
-                    </div>
-                  </div>
-                </div>
 
-                <p className="text-xs text-muted/80 bg-sand/30 p-2.5 rounded flex items-center gap-1.5">
-                  <span>🛡️</span> Safe Dummy Checkout: Any test card data will be accepted for testing without external network blocking.
-                </p>
+                    {/* Quick Handle Chips */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-xs text-muted">Quick handle:</span>
+                      {["@okhdfcbank", "@okaxis", "@paytm", "@ybl", "@upi"].map((handle) => (
+                        <button
+                          key={handle}
+                          type="button"
+                          onClick={() => fillDemoUpi(handle)}
+                          className="text-[11px] bg-sand/50 hover:bg-sand px-2 py-0.5 rounded text-ink font-mono transition-colors"
+                        >
+                          {handle}
+                        </button>
+                      ))}
+                    </div>
+
+                    <p className="text-xs text-muted bg-sand/30 p-2.5 rounded">
+                      💡 When you click "Pay via UPI", we will verify the UPI ID and place your order as <strong>Paid</strong> immediately.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -696,9 +722,15 @@ const Checkout = () => {
           <button
             onClick={handlePlaceOrder}
             disabled={placing || hasStockIssue}
-            className="w-full bg-ink text-ivory py-3 hover:bg-crimson transition-colors disabled:opacity-50"
+            className="w-full bg-ink text-ivory py-3 hover:bg-crimson transition-colors disabled:opacity-50 font-medium"
           >
-            {placing ? placingStage || "Processing..." : "Place Order"}
+            {placing
+              ? placingStage || "Processing..."
+              : paymentMethod === "COD"
+              ? "Place Order (Cash on Delivery)"
+              : paymentMethod === "UPI"
+              ? `Pay ${formatPrice(total)} via UPI`
+              : `Pay ${formatPrice(total)} with Razorpay`}
           </button>
 
           {hasStockIssue && (
