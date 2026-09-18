@@ -6,7 +6,7 @@ const ManageCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ name: "", slug: "", parentCategory: "" });
+  const [formData, setFormData] = useState({ name: "", slug: "", image: "", parentCategory: "" });
   const [error, setError] = useState("");
 
   const flattenCategories = (tree, prefix = "") =>
@@ -36,10 +36,11 @@ const ManageCategories = () => {
     try {
       await axiosInstance.post("/categories", {
         name: formData.name,
-        slug: formData.slug,
+        slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, "-"),
+        image: formData.image || undefined,
         parentCategory: formData.parentCategory || null,
       });
-      setFormData({ name: "", slug: "", parentCategory: "" });
+      setFormData({ name: "", slug: "", image: "", parentCategory: "" });
       setShowForm(false);
       await fetchCategories();
     } catch (err) {
@@ -73,19 +74,18 @@ const ManageCategories = () => {
         {error && <p className="text-sm text-crimson mb-4">{error}</p>}
 
         {showForm && (
-          <form onSubmit={handleSubmit} className="border border-sand p-5 mb-8 grid grid-cols-3 gap-3 text-sm">
+          <form onSubmit={handleSubmit} className="border border-sand p-5 mb-8 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
             <input
-              placeholder="Name (e.g. Men)"
+              placeholder="Name (e.g. Kids Wear)"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
               className="border border-sand px-3 py-2 focus:outline-none focus:border-crimson"
             />
             <input
-              placeholder="Slug (e.g. men)"
+              placeholder="Slug (optional, e.g. kids-wear)"
               value={formData.slug}
               onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-              required
               className="border border-sand px-3 py-2 focus:outline-none focus:border-crimson"
             />
             <select
@@ -98,7 +98,13 @@ const ManageCategories = () => {
                 <option key={cat._id} value={cat._id}>{cat.displayName}</option>
               ))}
             </select>
-            <button type="submit" className="col-span-3 bg-ink text-ivory py-2 hover:bg-crimson transition-colors">
+            <input
+              placeholder="Image URL (optional — leave blank for automatic stylish photo)"
+              value={formData.image}
+              onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+              className="col-span-1 md:col-span-3 border border-sand px-3 py-2 focus:outline-none focus:border-crimson"
+            />
+            <button type="submit" className="col-span-1 md:col-span-3 bg-ink text-ivory py-2 hover:bg-crimson transition-colors">
               Create Category
             </button>
           </form>
@@ -110,7 +116,18 @@ const ManageCategories = () => {
           <div className="space-y-2">
             {categories.map((cat) => (
               <div key={cat._id} className="flex justify-between items-center border border-sand px-4 py-3 text-sm">
-                <span className="text-ink">{cat.displayName}</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-sand shrink-0 border border-sand">
+                    {cat.image ? (
+                      <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="w-full h-full flex items-center justify-center text-xs text-muted font-bold">
+                        {cat.name?.[0]}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-ink font-medium">{cat.displayName}</span>
+                </div>
                 <button onClick={() => handleDelete(cat._id)} className="text-muted hover:text-crimson transition-colors">
                   Delete
                 </button>

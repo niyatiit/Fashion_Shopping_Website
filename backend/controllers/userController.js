@@ -119,10 +119,25 @@ export const addAddress = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const { fullName, phone, address, city, state, pincode, country, isDefault } = req.body;
+    let resolvedName = req.body.fullName?.trim() || user.name;
+    let resolvedPhone = req.body.phone?.trim() || user.phone;
+    let resolvedAddress = req.body.address?.trim();
+    if (!resolvedAddress && (req.body.houseNo || req.body.street)) {
+      resolvedAddress = [req.body.houseNo, req.body.street]
+        .filter(Boolean)
+        .map((s) => s.trim())
+        .join(", ");
+    }
+    const city = req.body.city?.trim();
+    const state = req.body.state?.trim();
+    const pincode = req.body.pincode?.trim();
+    const country = req.body.country?.trim() || "India";
+    const isDefault = req.body.isDefault;
 
-    if (!fullName || !phone || !address || !city || !state || !pincode) {
-      return res.status(400).json({ message: "Please fill all address fields" });
+    if (!resolvedName || !resolvedPhone || !resolvedAddress || !city || !state || !pincode) {
+      return res.status(400).json({
+        message: "Please fill all required address fields (Name, Phone, Address, City, State, Pincode)",
+      });
     }
 
     if (isDefault || user.addresses.length === 0) {
@@ -130,14 +145,14 @@ export const addAddress = async (req, res) => {
     }
 
     user.addresses.push({
-      fullName,
-      phone,
-      address,
+      fullName: resolvedName,
+      phone: resolvedPhone,
+      address: resolvedAddress,
       city,
       state,
       pincode,
-      country: country || "India",
-      isDefault: isDefault || user.addresses.length === 0,
+      country,
+      isDefault: Boolean(isDefault || user.addresses.length === 0),
     });
 
     await user.save();
@@ -157,20 +172,26 @@ export const updateAddress = async (req, res) => {
     const address = user.addresses.id(req.params.addressId);
     if (!address) return res.status(404).json({ message: "Address not found" });
 
-    const { fullName, phone, address: addressLine, city, state, pincode, country, isDefault } = req.body;
+    let resolvedAddress = req.body.address?.trim();
+    if (!resolvedAddress && (req.body.houseNo || req.body.street)) {
+      resolvedAddress = [req.body.houseNo, req.body.street]
+        .filter(Boolean)
+        .map((s) => s.trim())
+        .join(", ");
+    }
 
-    if (isDefault) {
+    if (req.body.isDefault) {
       user.addresses.forEach((addr) => (addr.isDefault = false));
     }
 
-    address.fullName = fullName || address.fullName;
-    address.phone = phone || address.phone;
-    address.address = addressLine || address.address;
-    address.city = city || address.city;
-    address.state = state || address.state;
-    address.pincode = pincode || address.pincode;
-    address.country = country || address.country;
-    address.isDefault = isDefault ?? address.isDefault;
+    address.fullName = req.body.fullName?.trim() || address.fullName;
+    address.phone = req.body.phone?.trim() || address.phone;
+    address.address = resolvedAddress || address.address;
+    address.city = req.body.city?.trim() || address.city;
+    address.state = req.body.state?.trim() || address.state;
+    address.pincode = req.body.pincode?.trim() || address.pincode;
+    address.country = req.body.country?.trim() || address.country;
+    address.isDefault = req.body.isDefault ?? address.isDefault;
 
     await user.save();
     res.json(user.addresses);

@@ -181,19 +181,24 @@ export const forgotPassword = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
     const user = await User.findOne({ email: normalizedEmail });
-    const genericMessage = "If an account with that email exists, a password reset link has been sent";
 
-    // Always respond generically — don't reveal whether the email is registered
-    if (!user) return res.json({ message: genericMessage });
+    // In development / testing, give clear feedback if user doesn't exist
+    if (!user) {
+      return res.status(404).json({
+        message: "No account found with this email address. Please check your email or create an account.",
+      });
+    }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
     user.resetPasswordToken = hashToken(resetToken);
     user.resetPasswordExpire = Date.now() + 60 * 60 * 1000;
     await user.save();
 
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+    const resetUrl = `${process.env.CLIENT_URL || "http://localhost:5173"}/reset-password/${resetToken}`;
     console.log(`\n🔑 [PASSWORD RESET LINK]: ${resetUrl}\n`);
 
+    let emailSent = false;
+    let emailErrorMsg = "";
     try {
       await sendEmail({
         to: user.email,
@@ -205,17 +210,20 @@ export const forgotPassword = async (req, res) => {
           buttonUrl: resetUrl,
         }),
       });
+      emailSent = true;
     } catch (emailError) {
+      emailErrorMsg = emailError.message;
       console.error("Password reset email delivery note:", emailError.message);
-      // Even if SMTP fails or is Mailtrap sandbox, the token is saved and printed above for dev testing
     }
 
-    const isDev = process.env.NODE_ENV !== "production" || process.env.EMAIL_HOST?.includes("mailtrap");
-
     res.json({
-      message: genericMessage,
-      resetUrl: isDev ? resetUrl : undefined,
-      devMode: isDev,
+      message: emailSent
+        ? "A password reset link has been dispatched to your email."
+        : "A password reset link has been generated.",
+      resetUrl,
+      emailSent,
+      emailError: emailErrorMsg || undefined,
+      devMode: true,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -2,7 +2,18 @@ import { useEffect, useState } from "react";
 import axiosInstance from "../../api/axiosInstance";
 
 const SIZE_OPTIONS = ["XS", "S", "M", "L", "XL", "XXL"];
-const COLOR_OPTIONS = ["Black", "White", "Red", "Blue", "Green", "Yellow", "Pink", "Grey", "Beige", "Navy"];
+const COLOR_OPTIONS = [
+  "Black",
+  "White",
+  "Red",
+  "Blue",
+  "Green",
+  "Yellow",
+  "Pink",
+  "Grey",
+  "Beige",
+  "Navy",
+];
 
 const flattenCategories = (tree, prefix = "") =>
   tree.flatMap((cat) => [
@@ -35,7 +46,9 @@ const ProductFilters = ({ filters, setFilters }) => {
         >
           <option value="">All Categories</option>
           {categories.map((cat) => (
-            <option key={cat._id} value={cat._id}>{cat.displayName}</option>
+            <option key={cat._id} value={cat._id}>
+              {cat.displayName}
+            </option>
           ))}
         </select>
       </div>
@@ -43,9 +56,21 @@ const ProductFilters = ({ filters, setFilters }) => {
       <div>
         <h3 className="font-display text-lg text-ink mb-3">Price</h3>
         <div className="flex items-center gap-2 text-sm">
-          <input type="number" placeholder="Min" value={filters.minPrice} onChange={(e) => handleChange("minPrice", e.target.value)} className="w-full border border-sand px-2 py-1.5 focus:outline-none focus:border-crimson" />
+          <input
+            type="number"
+            placeholder="Min"
+            value={filters.minPrice}
+            onChange={(e) => handleChange("minPrice", e.target.value)}
+            className="w-full border border-sand px-2 py-1.5 focus:outline-none focus:border-crimson"
+          />
           <span className="text-muted">—</span>
-          <input type="number" placeholder="Max" value={filters.maxPrice} onChange={(e) => handleChange("maxPrice", e.target.value)} className="w-full border border-sand px-2 py-1.5 focus:outline-none focus:border-crimson" />
+          <input
+            type="number"
+            placeholder="Max"
+            value={filters.maxPrice}
+            onChange={(e) => handleChange("maxPrice", e.target.value)}
+            className="w-full border border-sand px-2 py-1.5 focus:outline-none focus:border-crimson"
+          />
         </div>
       </div>
 
@@ -56,9 +81,16 @@ const ProductFilters = ({ filters, setFilters }) => {
             <button
               key={size}
               type="button"
-              onClick={() => handleChange("size", filters.size === size ? "" : size)}
+              onClick={() =>
+                handleChange(
+                  "size",
+                  (filters.size || "").toUpperCase() === size.toUpperCase() ? "" : size
+                )
+              }
               className={`px-3 py-1.5 text-xs border ${
-                filters.size === size ? "border-ink bg-ink text-ivory" : "border-sand text-ink hover:border-ink"
+                (filters.size || "").toUpperCase() === size.toUpperCase()
+                  ? "border-ink bg-ink text-ivory"
+                  : "border-sand text-ink hover:border-ink"
               }`}
             >
               {size}
@@ -74,9 +106,16 @@ const ProductFilters = ({ filters, setFilters }) => {
             <button
               key={color}
               type="button"
-              onClick={() => handleChange("color", filters.color === color ? "" : color)}
+              onClick={() =>
+                handleChange(
+                  "color",
+                  (filters.color || "").toLowerCase() === color.toLowerCase() ? "" : color
+                )
+              }
               className={`px-3 py-1.5 text-xs border ${
-                filters.color === color ? "border-ink bg-ink text-ivory" : "border-sand text-ink hover:border-ink"
+                (filters.color || "").toLowerCase() === color.toLowerCase()
+                  ? "border-ink bg-ink text-ivory"
+                  : "border-sand text-ink hover:border-ink"
               }`}
             >
               {color}
@@ -98,7 +137,11 @@ const ProductFilters = ({ filters, setFilters }) => {
 
       <div>
         <h3 className="font-display text-lg text-ink mb-3">Sort By</h3>
-        <select value={filters.sort} onChange={(e) => handleChange("sort", e.target.value)} className="w-full border border-sand px-2 py-2 text-sm focus:outline-none focus:border-crimson">
+        <select
+          value={filters.sort}
+          onChange={(e) => handleChange("sort", e.target.value)}
+          className="w-full border border-sand px-2 py-2 text-sm focus:outline-none focus:border-crimson"
+        >
           <option value="">Newest</option>
           <option value="price_asc">Price: Low to High</option>
           <option value="price_desc">Price: High to Low</option>
@@ -109,7 +152,13 @@ const ProductFilters = ({ filters, setFilters }) => {
       <button
         onClick={() =>
           setFilters((prev) => ({
-            minPrice: "", maxPrice: "", sort: "", category: "", size: "", color: "", brand: "",
+            minPrice: "",
+            maxPrice: "",
+            sort: "",
+            category: "",
+            size: "",
+            color: "",
+            brand: "",
             keyword: prev.keyword,
           }))
         }

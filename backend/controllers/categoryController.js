@@ -6,19 +6,25 @@ export const createCategory = async (req, res) => {
   try {
     const { name, slug, image, parentCategory } = req.body;
 
-    if (!name || !slug) {
-      return res.status(400).json({ message: "Name and slug are required" });
+    if (!name) {
+      return res.status(400).json({ message: "Category name is required" });
     }
 
-    const existing = await Category.findOne({ slug });
+    const resolvedSlug = (slug || name)
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    const existing = await Category.findOne({ slug: resolvedSlug });
     if (existing) {
       return res.status(400).json({ message: "Category with this slug already exists" });
     }
 
     const category = await Category.create({
-      name,
-      slug,
-      image,
+      name: name.trim(),
+      slug: resolvedSlug,
+      image: image ? image.trim() : undefined,
       parentCategory: parentCategory || null,
     });
 

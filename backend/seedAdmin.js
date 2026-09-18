@@ -4,10 +4,10 @@ import connectDB from "./config/db.js";
 import User from "./models/User.js";
 
 // Default admin credentials — override via .env, or edit the fallbacks below.
-const ADMIN_NAME = process.env.ADMIN_NAME || "Admin";
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@fashionhub.com";
-const ADMIN_PHONE = process.env.ADMIN_PHONE || "9999999999";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Admin@123";
+const ADMIN_NAME = process.env.ADMIN_NAME || "Niyati Patel";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "niyatipatel0701@gmail.com";
+const ADMIN_PHONE = process.env.ADMIN_PHONE || "9876543210";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Niyatiwebsite@123";
 
 const seedAdmin = async () => {
   try {

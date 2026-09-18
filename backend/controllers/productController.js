@@ -30,6 +30,9 @@ const removeImageFile = async (publicId) => {
   }
 };
 
+// Helper to escape regex special characters
+const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 // Helper to parse arrays from FormData
 const parseArrayField = (val) => {
   if (!val) return [];
@@ -46,6 +49,19 @@ const parseArrayField = (val) => {
       .filter(Boolean);
   }
   return [];
+};
+
+const normalizeSizes = (val) => {
+  return parseArrayField(val).map((s) => s.toUpperCase());
+};
+
+const normalizeColors = (val) => {
+  return parseArrayField(val).map((c) =>
+    c
+      .split(/\s+/)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ")
+  );
 };
 
 // @desc Create a new product (Admin only)
@@ -81,8 +97,8 @@ export const createProduct = async (req, res) => {
       discountPrice: discountPrice ? Number(discountPrice) : 0,
       category,
       brand: brand ? brand.trim() : "Generic",
-      sizes: parseArrayField(sizes),
-      colors: parseArrayField(colors),
+      sizes: normalizeSizes(sizes),
+      colors: normalizeColors(colors),
       stock: stock !== undefined ? Number(stock) : 0,
       isFeatured: isFeatured === true || isFeatured === "true",
       images,
@@ -125,10 +141,10 @@ export const getAllProducts = async (req, res) => {
       query.brand = brand;
     }
     if (size) {
-      query.sizes = size;
+      query.sizes = { $regex: new RegExp(`^${escapeRegex(size.trim())}$`, "i") };
     }
     if (color) {
-      query.colors = color;
+      query.colors = { $regex: new RegExp(`^${escapeRegex(color.trim())}$`, "i") };
     }
     if (isFeatured === "true") {
       query.isFeatured = true;
@@ -247,8 +263,8 @@ export const updateProduct = async (req, res) => {
     if (req.body.discountPrice !== undefined) product.discountPrice = Number(req.body.discountPrice);
     if (req.body.category !== undefined) product.category = req.body.category;
     if (req.body.brand !== undefined) product.brand = req.body.brand.trim();
-    if (req.body.sizes !== undefined) product.sizes = parseArrayField(req.body.sizes);
-    if (req.body.colors !== undefined) product.colors = parseArrayField(req.body.colors);
+    if (req.body.sizes !== undefined) product.sizes = normalizeSizes(req.body.sizes);
+    if (req.body.colors !== undefined) product.colors = normalizeColors(req.body.colors);
     if (req.body.stock !== undefined) product.stock = Number(req.body.stock);
     if (req.body.isFeatured !== undefined) {
       product.isFeatured = req.body.isFeatured === true || req.body.isFeatured === "true";

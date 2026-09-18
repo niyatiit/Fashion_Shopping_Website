@@ -24,7 +24,14 @@ const Profile = () => {
   const [verifyMessage, setVerifyMessage] = useState("");
 
   const [addressForm, setAddressForm] = useState({
-    houseNo: "", street: "", city: "", state: "", pincode: "", isDefault: false,
+    fullName: user?.name || "",
+    phone: user?.phone || "",
+    address: "",
+    city: "",
+    state: "",
+    pincode: "",
+    country: "India",
+    isDefault: false,
   });
   const [addingAddress, setAddingAddress] = useState(false);
   const [addresses, setAddresses] = useState(user?.addresses || []);
@@ -50,10 +57,30 @@ const Profile = () => {
     try {
       const { data } = await axiosInstance.post("/users/address", addressForm);
       setAddresses(data);
-      setAddressForm({ houseNo: "", street: "", city: "", state: "", pincode: "", isDefault: false });
+      setAddressForm({
+        fullName: user?.name || "",
+        phone: user?.phone || "",
+        address: "",
+        city: "",
+        state: "",
+        pincode: "",
+        country: "India",
+        isDefault: false,
+      });
       setAddingAddress(false);
+      await fetchProfile();
     } catch (err) {
       setMessage(err.response?.data?.message || "Could not add address");
+    }
+  };
+
+  const handleSetDefaultAddress = async (addressId) => {
+    try {
+      const { data } = await axiosInstance.put(`/users/address/${addressId}/default`);
+      setAddresses(data);
+      await fetchProfile();
+    } catch (err) {
+      setMessage("Could not set default address");
     }
   };
 
@@ -61,6 +88,7 @@ const Profile = () => {
     try {
       const { data } = await axiosInstance.delete(`/users/address/${addressId}`);
       setAddresses(data);
+      await fetchProfile();
     } catch (err) {
       setMessage("Could not delete address");
     }
@@ -277,18 +305,67 @@ const Profile = () => {
 
         {addingAddress && (
           <form onSubmit={handleAddAddress} className="grid grid-cols-2 gap-3 mb-6 text-sm">
-            <input placeholder="House No" value={addressForm.houseNo} onChange={(e) => setAddressForm({ ...addressForm, houseNo: e.target.value })} className="border border-sand px-3 py-2 focus:outline-none focus:border-crimson" required />
-            <input placeholder="Street" value={addressForm.street} onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })} className="border border-sand px-3 py-2 focus:outline-none focus:border-crimson" required />
-            <input placeholder="City" value={addressForm.city} onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })} className="border border-sand px-3 py-2 focus:outline-none focus:border-crimson" required />
-            <input placeholder="State" value={addressForm.state} onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })} className="border border-sand px-3 py-2 focus:outline-none focus:border-crimson" required />
-            <input placeholder="Pincode" value={addressForm.pincode} onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value })} className="border border-sand px-3 py-2 focus:outline-none focus:border-crimson" required />
+            <input
+              placeholder="Full Name"
+              value={addressForm.fullName}
+              onChange={(e) => setAddressForm({ ...addressForm, fullName: e.target.value })}
+              className="border border-sand px-3 py-2 focus:outline-none focus:border-crimson"
+              required
+            />
+            <input
+              placeholder="Phone Number"
+              value={addressForm.phone}
+              onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
+              className="border border-sand px-3 py-2 focus:outline-none focus:border-crimson"
+              required
+            />
+            <input
+              placeholder="Street Address / House No / Area"
+              value={addressForm.address}
+              onChange={(e) => setAddressForm({ ...addressForm, address: e.target.value })}
+              className="col-span-2 border border-sand px-3 py-2 focus:outline-none focus:border-crimson"
+              required
+            />
+            <input
+              placeholder="City"
+              value={addressForm.city}
+              onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+              className="border border-sand px-3 py-2 focus:outline-none focus:border-crimson"
+              required
+            />
+            <input
+              placeholder="State"
+              value={addressForm.state}
+              onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
+              className="border border-sand px-3 py-2 focus:outline-none focus:border-crimson"
+              required
+            />
+            <input
+              placeholder="Pincode"
+              value={addressForm.pincode}
+              onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value })}
+              className="border border-sand px-3 py-2 focus:outline-none focus:border-crimson"
+              required
+            />
             <label className="flex items-center gap-2 text-muted">
-              <input type="checkbox" checked={addressForm.isDefault} onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })} />
-              Set as default
+              <input
+                type="checkbox"
+                checked={addressForm.isDefault}
+                onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
+              />
+              Set as default address
             </label>
-            <div className="col-span-2 flex gap-3">
-              <button type="submit" className="bg-ink text-ivory px-5 py-2 hover:bg-crimson transition-colors">Save Address</button>
-              <button type="button" onClick={() => setAddingAddress(false)} className="text-muted hover:text-ink transition-colors">Cancel</button>
+            <div className="col-span-2 flex gap-3 mt-2">
+              <button type="submit" className="bg-ink text-ivory px-5 py-2 hover:bg-crimson transition-colors">
+                Save Address
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddingAddress(false)}
+                className="text-muted hover:text-ink transition-colors"
+              >
+                Cancel
+              </button>
             </div>
           </form>
         )}
@@ -300,14 +377,36 @@ const Profile = () => {
             {addresses.map((addr) => (
               <div key={addr._id} className="flex justify-between items-start border border-sand p-4 text-sm">
                 <div>
-                  <p className="text-ink">
-                    {addr.houseNo}, {addr.street}, {addr.city}, {addr.state} - {addr.pincode}
-                    {addr.isDefault && <span className="text-crimson ml-2">(Default)</span>}
+                  <p className="text-ink font-medium">
+                    {addr.fullName || user.name}{" "}
+                    {addr.isDefault && (
+                      <span className="text-crimson text-xs border border-crimson/30 bg-crimson/5 px-2 py-0.5 rounded ml-2">
+                        Default
+                      </span>
+                    )}
                   </p>
+                  <p className="text-muted mt-1">
+                    {addr.address || `${addr.houseNo || ""}, ${addr.street || ""}`.replace(/^, |, $/g, "")},{" "}
+                    {addr.city}, {addr.state} - {addr.pincode}
+                  </p>
+                  <p className="text-muted text-xs mt-0.5">Phone: {addr.phone || user.phone}</p>
                 </div>
-                <button onClick={() => handleDeleteAddress(addr._id)} className="text-muted hover:text-crimson transition-colors">
-                  Remove
-                </button>
+                <div className="flex items-center gap-3">
+                  {!addr.isDefault && (
+                    <button
+                      onClick={() => handleSetDefaultAddress(addr._id)}
+                      className="text-xs text-muted hover:text-ink underline transition-colors"
+                    >
+                      Set Default
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDeleteAddress(addr._id)}
+                    className="text-xs text-muted hover:text-crimson transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             ))}
           </div>

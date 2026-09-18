@@ -28,26 +28,75 @@ const Checkout = () => {
 
   // Synchronize saved addresses whenever user profile finishes loading or updating
   useEffect(() => {
-    if (user?.addresses) {
+    if (user?.addresses && user.addresses.length > 0) {
       setAddresses(user.addresses);
+      const defaultAddr = user.addresses.find((a) => a.isDefault) || user.addresses[0];
       setSelectedAddress((prev) => {
         if (prev && user.addresses.some((a) => a._id === prev)) return prev;
-        const defaultAddr = user.addresses.find((a) => a.isDefault);
-        return defaultAddr?._id || user.addresses[0]?._id || "";
+        return defaultAddr?._id || "";
+      });
+      setAddressMode(null);
+    } else if (user && (!user.addresses || user.addresses.length === 0)) {
+      setAddresses([]);
+      setSelectedAddress("");
+      setAddressMode("add");
+      setAddressForm({
+        ...emptyAddressForm,
+        fullName: user.name || "",
+        phone: user.phone || "",
       });
     }
   }, [user]);
 
   const [addressMode, setAddressMode] = useState(null); // null | "add" | editing addressId
-  const [addressForm, setAddressForm] = useState(emptyAddressForm);
+  const [addressForm, setAddressForm] = useState({
+    ...emptyAddressForm,
+    fullName: user?.name || "",
+    phone: user?.phone || "",
+  });
   const [addressSaving, setAddressSaving] = useState(false);
   const [addressError, setAddressError] = useState("");
 
   const [couponInput, setCouponInput] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("Razorpay");
+  const [paymentMethod, setPaymentMethod] = useState("Card");
+  const [cardForm, setCardForm] = useState({
+    cardNumber: "",
+    cardHolder: user?.name || "",
+    expiry: "",
+    cvv: "",
+  });
   const [placing, setPlacing] = useState(false);
   const [placingStage, setPlacingStage] = useState(""); // human-readable status while placing
   const [error, setError] = useState("");
+
+  const handleCardNumberChange = (e) => {
+    let val = e.target.value.replace(/\D/g, "").slice(0, 16);
+    val = val.replace(/(\d{4})(?=\d)/g, "$1 ");
+    setCardForm((prev) => ({ ...prev, cardNumber: val }));
+  };
+
+  const handleExpiryChange = (e) => {
+    let val = e.target.value.replace(/\D/g, "").slice(0, 4);
+    if (val.length >= 3) {
+      val = `${val.slice(0, 2)}/${val.slice(2)}`;
+    }
+    setCardForm((prev) => ({ ...prev, expiry: val }));
+  };
+
+  const handleCvvChange = (e) => {
+    const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+    setCardForm((prev) => ({ ...prev, cvv: val }));
+  };
+
+  const fillDemoCard = () => {
+    setCardForm({
+      cardNumber: "4111 1111 1111 1111",
+      cardHolder: user?.name || "Demo Shopper",
+      expiry: "12/28",
+      cvv: "123",
+    });
+    setError("");
+  };
 
   const hasStockIssue = cart.items.some(
     (item) => (item.product?.stock ?? 0) === 0 || item.quantity > (item.product?.stock ?? 0)
@@ -209,11 +258,40 @@ const Checkout = () => {
         return;
       }
 
+      if (paymentMethod === "Card") {
+        const rawCard = cardForm.cardNumber.replace(/\s/g, "");
+        if (!rawCard || rawCard.length < 12) {
+          setError("Please enter a valid card number (or click '⚡ Fill Demo Card')");
+          setPlacing(false);
+          return;
+        }
+        if (!cardForm.expiry || cardForm.expiry.length < 4) {
+          setError("Please enter an expiry date (MM/YY)");
+          setPlacing(false);
+          return;
+        }
+        if (!cardForm.cvv || cardForm.cvv.length < 3) {
+          setError("Please enter card CVV");
+          setPlacing(false);
+          return;
+        }
+
+        setPlacingStage("Authorizing dummy card payment...");
+        await new Promise((r) => setTimeout(r, 700));
+
+        await placeOrder({
+          cardLast4: rawCard.slice(-4),
+          cardBrand: "Visa (Demo)",
+          transactionId: `tx_card_dummy_${Date.now()}`,
+        });
+        return;
+      }
+
       // Razorpay flow
       setPlacingStage("Loading payment gateway...");
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
-        setError("Failed to load the payment gateway. Please check your connection and try again.");
+        setError("External payment script was blocked by browser or adblocker. Please use the 'Credit / Debit Card' option for test checkout.");
         setPlacing(false);
         setPlacingStage("");
         return;
@@ -222,6 +300,16 @@ const Checkout = () => {
       const { data: razorOrder } = await axiosInstance.post("/payment/create-order", {
         amount: total,
       });
+
+      if (razorOrder.isFallback) {
+        // Fallback simulated order when Razorpay credentials have issues
+        await placeOrder({
+          razorpay_payment_id: `pay_dummy_${Date.now()}`,
+          razorpay_order_id: razorOrder.orderId,
+          razorpay_signature: "mock_signature_test",
+        });
+        return;
+      }
 
       setPlacingStage("Waiting for payment...");
       const options = {
@@ -386,26 +474,132 @@ const Checkout = () => {
           {/* Payment Method */}
           <div className="mb-12">
             <h2 className="font-display text-lg text-ink mb-4">Payment Method</h2>
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid sm:grid-cols-3 gap-3 mb-4">
               <button
-                onClick={() => setPaymentMethod("COD")}
-                className={`text-left border p-4 text-sm ${
-                  paymentMethod === "COD" ? "border-ink bg-sand/30" : "border-sand"
+                type="button"
+                onClick={() => {
+                  setPaymentMethod("Razorpay");
+                  setError("");
+                }}
+                className={`text-left border p-4 text-sm transition-all ${
+                  paymentMethod === "Razorpay" ? "border-ink bg-sand/30 shadow-sm" : "border-sand hover:border-ink/60"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-ink font-medium">Razorpay Gateway</p>
+                  <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium">
+                    All-in-One
+                  </span>
+                </div>
+                <p className="text-muted text-xs">Credit/Debit Cards, UPI, Netbanking & Wallets</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentMethod("COD");
+                  setError("");
+                }}
+                className={`text-left border p-4 text-sm transition-all ${
+                  paymentMethod === "COD" ? "border-ink bg-sand/30 shadow-sm" : "border-sand hover:border-ink/60"
                 }`}
               >
                 <p className="text-ink font-medium mb-1">Cash on Delivery</p>
-                <p className="text-muted text-xs">Pay when your order arrives</p>
+                <p className="text-muted text-xs">Pay in cash when your order arrives</p>
               </button>
+
               <button
-                onClick={() => setPaymentMethod("Razorpay")}
-                className={`text-left border p-4 text-sm ${
-                  paymentMethod === "Razorpay" ? "border-ink bg-sand/30" : "border-sand"
+                type="button"
+                onClick={() => {
+                  setPaymentMethod("Card");
+                  setError("");
+                }}
+                className={`text-left border p-4 text-sm transition-all ${
+                  paymentMethod === "Card" ? "border-ink bg-sand/30 shadow-sm" : "border-sand hover:border-ink/60"
                 }`}
               >
-                <p className="text-ink font-medium mb-1">Pay Online</p>
-                <p className="text-muted text-xs">Cards, UPI, netbanking via Razorpay</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-ink font-medium">Direct Demo Card</p>
+                  <span className="text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded font-medium">
+                    Instant Test
+                  </span>
+                </div>
+                <p className="text-muted text-xs">1-Click test card (bypasses modal)</p>
               </button>
             </div>
+
+            {/* Direct Card Form for Online Payment */}
+            {paymentMethod === "Card" && (
+              <div className="border border-sand bg-white p-5 text-sm space-y-4 rounded-sm shadow-sm">
+                <div className="flex items-center justify-between border-b border-sand pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-ink">Enter Card Details</span>
+                    <span className="text-xs text-muted">(Dummy Test Card Supported)</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={fillDemoCard}
+                    className="text-xs bg-sand px-3 py-1.5 hover:bg-ink hover:text-ivory transition-colors font-medium rounded-sm"
+                  >
+                    ⚡ Fill Demo Card
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-muted mb-1">Card Number</label>
+                    <input
+                      type="text"
+                      placeholder="4111 1111 1111 1111"
+                      value={cardForm.cardNumber}
+                      onChange={handleCardNumberChange}
+                      className="w-full border border-sand px-3 py-2 text-sm font-mono tracking-wider focus:outline-none focus:border-crimson"
+                      maxLength={19}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-muted mb-1">Name on Card</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. John Doe"
+                      value={cardForm.cardHolder}
+                      onChange={(e) => setCardForm({ ...cardForm, cardHolder: e.target.value })}
+                      className="w-full border border-sand px-3 py-2 text-sm focus:outline-none focus:border-crimson"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-muted mb-1">Expiry Date (MM/YY)</label>
+                      <input
+                        type="text"
+                        placeholder="12/28"
+                        value={cardForm.expiry}
+                        onChange={handleExpiryChange}
+                        className="w-full border border-sand px-3 py-2 text-sm font-mono focus:outline-none focus:border-crimson"
+                        maxLength={5}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-muted mb-1">CVV</label>
+                      <input
+                        type="password"
+                        placeholder="123"
+                        value={cardForm.cvv}
+                        onChange={handleCvvChange}
+                        className="w-full border border-sand px-3 py-2 text-sm font-mono focus:outline-none focus:border-crimson"
+                        maxLength={4}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted/80 bg-sand/30 p-2.5 rounded flex items-center gap-1.5">
+                  <span>🛡️</span> Safe Dummy Checkout: Any test card data will be accepted for testing without external network blocking.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Items */}

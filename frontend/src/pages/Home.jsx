@@ -4,7 +4,7 @@ import axiosInstance from "../api/axiosInstance";
 import ProductGrid from "../components/product/ProductGrid";
 import SectionHeader from "../components/home/SectionHeader";
 import CategoryCard from "../components/home/CategoryCard";
-import heroImage from "../assets/hero.png";
+import heroImage from "../assets/hero.jpg";
 
 // Generic section state: { items, loading, error }
 const initialSection = { items: [], loading: true, error: "" };
@@ -93,8 +93,12 @@ const Home = () => {
             </Link>
           </div>
         </div>
-        <div className="aspect-[4/5] bg-sand overflow-hidden">
-          <img src={heroImage} alt="Latest fashion collection" className="w-full h-full object-cover" />
+        <div className="aspect-[4/5] bg-sand overflow-hidden rounded-sm shadow-sm border border-sand">
+          <img
+            src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1200&auto=format&fit=crop&q=85"
+            alt="Latest fashion collection"
+            className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+          />
         </div>
       </section>
 
@@ -151,6 +155,36 @@ const Home = () => {
       <section className="max-w-7xl mx-auto px-6 pb-20">
         <SectionHeader title="Best Sellers" subtitle="What everyone's adding to their bag." viewAllTo="/products" />
         {renderSection(bestSellers)}
+      </section>
+
+      {/* Editorial Feature Showcase Banner */}
+      <section className="max-w-7xl mx-auto px-6 pb-20">
+        <div className="relative overflow-hidden bg-white border border-sand grid md:grid-cols-2 items-center">
+          <div className="p-8 md:p-14 z-10">
+            <span className="text-xs uppercase tracking-widest text-crimson font-medium mb-3 block">
+              Spring / Summer 2026 Collection
+            </span>
+            <h2 className="font-display text-3xl md:text-4xl text-ink mb-4 leading-tight">
+              Elegance in Every Detail.
+            </h2>
+            <p className="text-muted text-sm leading-relaxed mb-6 max-w-md">
+              Discover timeless staples and expressive silhouettes tailored to redefine everyday luxury. Hand-picked fabrics, conscious craftsmanship, and versatile aesthetics.
+            </p>
+            <Link
+              to="/products"
+              className="inline-block bg-ink text-ivory px-6 py-3 text-sm hover:bg-crimson transition-colors"
+            >
+              Explore Collection
+            </Link>
+          </div>
+          <div className="aspect-[16/10] md:aspect-auto md:h-full overflow-hidden">
+            <img
+              src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1200&auto=format&fit=crop&q=85"
+              alt="Fashion editorial showcase"
+              className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+            />
+          </div>
+        </div>
       </section>
 
       {/* Sale section */}
