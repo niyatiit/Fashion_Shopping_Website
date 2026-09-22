@@ -31,7 +31,11 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/products" element={<ProductListing />} />
+        <Route path="/product" element={<ProductListing />} />
         <Route path="/products/:id" element={<ProductDetails />} />
+        <Route path="/product/:id" element={<ProductDetails />} />
+        <Route path="/shop" element={<ProductListing />} />
+        <Route path="/categories" element={<ProductListing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -52,6 +56,9 @@ function App() {
         <Route path="/admin/categories" element={<ProtectedRoute adminOnly><ManageCategories /></ProtectedRoute>} />
         <Route path="/admin/orders" element={<ProtectedRoute adminOnly><ManageOrders /></ProtectedRoute>} />
         <Route path="/admin/coupons" element={<ProtectedRoute adminOnly><ManageCoupons /></ProtectedRoute>} />
+
+        {/* Catch-all fallback: prevents blank screen if user enters unknown URL or removes path */}
+        <Route path="*" element={<ProductListing />} />
       </Routes>
       <Footer />
     </>

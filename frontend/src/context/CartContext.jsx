@@ -129,6 +129,7 @@ export const CartProvider = ({ children }) => {
         addToCart,
         updateCartItem,
         removeCartItem,
+        clearCart,
         cartCount: new Set(
           (cart?.items || []).map((item) =>
             (item.product?._id || item.product || item._id).toString()

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axiosInstance from "../../api/axiosInstance";
+import PasswordInput from "../common/PasswordInput";
 
 const SecurityTab = () => {
   const [formData, setFormData] = useState({ currentPassword: "", newPassword: "", confirmNewPassword: "" });
@@ -44,32 +45,35 @@ const SecurityTab = () => {
       <form onSubmit={handleSubmit} className="border border-sand p-6 space-y-4 max-w-md">
         <div>
           <label className="text-sm text-ink block mb-1">Current Password</label>
-          <input
-            type="password"
+          <PasswordInput
+            name="currentPassword"
+            placeholder="Current Password"
             value={formData.currentPassword}
             onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
             required
-            className="w-full border border-sand px-3 py-2 text-sm focus:outline-none focus:border-crimson"
+            autoComplete="current-password"
           />
         </div>
         <div>
           <label className="text-sm text-ink block mb-1">New Password</label>
-          <input
-            type="password"
+          <PasswordInput
+            name="newPassword"
+            placeholder="New Password (min 6 chars)"
             value={formData.newPassword}
             onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
             required
-            className="w-full border border-sand px-3 py-2 text-sm focus:outline-none focus:border-crimson"
+            autoComplete="new-password"
           />
         </div>
         <div>
           <label className="text-sm text-ink block mb-1">Confirm New Password</label>
-          <input
-            type="password"
+          <PasswordInput
+            name="confirmNewPassword"
+            placeholder="Confirm New Password"
             value={formData.confirmNewPassword}
             onChange={(e) => setFormData({ ...formData, confirmNewPassword: e.target.value })}
             required
-            className="w-full border border-sand px-3 py-2 text-sm focus:outline-none focus:border-crimson"
+            autoComplete="new-password"
           />
         </div>
         <button

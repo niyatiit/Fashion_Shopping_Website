@@ -55,12 +55,9 @@ export const addToCart = async (req, res) => {
       return res.status(400).json({ message: "This product is out of stock" });
     }
 
-    // Require a size/color pick when the product actually offers a choice
+    // Require a size pick when the product actually offers a choice
     if (product.sizes?.length > 0 && !size) {
       return res.status(400).json({ message: "Please select a size" });
-    }
-    if (product.colors?.length > 0 && !color) {
-      return res.status(400).json({ message: "Please select a color" });
     }
 
     let cart = await Cart.findOne({ user: req.user._id });

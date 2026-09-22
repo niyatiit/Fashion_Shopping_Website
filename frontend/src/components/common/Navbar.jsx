@@ -1,8 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
 import useCart from "../../hooks/useCart";
 import useWishlist from "../../hooks/useWishlist";
+
+const getInitials = (name) => {
+  if (!name) return "U";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};
 
 const SearchIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4.5 h-4.5">
@@ -49,11 +58,39 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
 
   const wishlistCount = wishlist?.products?.length || 0;
 
+  // Safe user properties to prevent 'Cannot read properties of undefined (reading split)'
+  const userName =
+    user?.name ||
+    user?.user?.name ||
+    (typeof user?.email === "string" ? user.email.split("@")[0] : "") ||
+    "User";
+
+  const firstName =
+    typeof userName === "string" && userName.trim()
+      ? userName.trim().split(/\s+/)[0]
+      : "User";
+
+  const userEmail = user?.email || user?.user?.email || "";
+  const isAdmin = user?.role === "admin" || user?.user?.role === "admin";
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleLogout = async () => {
     await logout();
+    setUserMenuOpen(false);
     setMobileOpen(false);
     navigate("/login");
   };
@@ -131,36 +168,122 @@ const Navbar = () => {
             </Link>
 
             {/* Desktop auth area */}
-            <div className="hidden md:flex items-center gap-4 text-sm">
+            <div className="hidden md:flex items-center text-sm">
               {user ? (
-                <>
-                  <Link to="/profile" className="text-ink hover:text-crimson transition-colors">
-                    {user.name.split(" ")[0]}
-                  </Link>
-                  <Link to="/orders" className="text-ink hover:text-crimson transition-colors">
-                    Orders
-                  </Link>
-                  {user.role === "admin" && (
-                    <Link to="/admin/dashboard" className="text-crimson">
-                      Admin
-                    </Link>
-                  )}
+                <div className="relative" ref={userMenuRef}>
                   <button
-                    onClick={handleLogout}
-                    className="border border-ink px-4 py-1.5 text-ink hover:bg-ink hover:text-ivory transition-colors"
+                    onClick={() => setUserMenuOpen((v) => !v)}
+                    className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-full border border-sand bg-white hover:border-ink transition-all shadow-xs group cursor-pointer"
                   >
-                    Logout
+                    {/* Unique User Avatar Symbol with Initials */}
+                    <div className="w-7 h-7 rounded-full bg-ink text-ivory text-xs font-semibold flex items-center justify-center tracking-wider shrink-0 group-hover:bg-crimson transition-colors">
+                      {getInitials(userName)}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-left">
+                      <span className="text-xs font-medium text-ink max-w-[110px] truncate">
+                        {firstName}
+                      </span>
+                      {isAdmin && (
+                        <span className="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.2 rounded font-semibold uppercase tracking-wider">
+                          Admin
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Animated Dropdown Arrow */}
+                    <svg
+                      className={`w-3.5 h-3.5 text-muted transition-transform duration-200 ${
+                        userMenuOpen ? "rotate-180" : ""
+                      }`}
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
                   </button>
-                </>
+
+                  {/* Floating Dropdown Card */}
+                  {userMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-64 bg-white border border-sand shadow-lg rounded-xs py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                      {/* Header Info */}
+                      <div className="px-4 py-3 border-b border-sand/70 bg-sand/15">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-full bg-ink text-ivory text-xs font-semibold flex items-center justify-center shrink-0">
+                            {getInitials(userName)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-ink truncate">{userName}</p>
+                            {userEmail && <p className="text-[11px] text-muted truncate">{userEmail}</p>}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Menu Links */}
+                      <div className="py-1 text-xs">
+                        <Link
+                          to="/profile"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-ink hover:bg-sand/30 transition-colors"
+                        >
+                          <span>👤</span>
+                          <span>My Profile & Addresses</span>
+                        </Link>
+
+                        <Link
+                          to="/orders"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-ink hover:bg-sand/30 transition-colors"
+                        >
+                          <span>📦</span>
+                          <span>Order History</span>
+                        </Link>
+
+                        <Link
+                          to="/wishlist"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-ink hover:bg-sand/30 transition-colors"
+                        >
+                          <span>🤍</span>
+                          <span>Saved Wishlist</span>
+                        </Link>
+
+                        {isAdmin && (
+                          <Link
+                            to="/admin/dashboard"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2 text-crimson font-medium hover:bg-sand/30 transition-colors"
+                          >
+                            <span>👑</span>
+                            <span>Admin Dashboard</span>
+                          </Link>
+                        )}
+                      </div>
+
+                      {/* Divider & Logout */}
+                      <div className="border-t border-sand/70 pt-1">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-muted hover:text-crimson hover:bg-sand/20 transition-colors text-left cursor-pointer"
+                        >
+                          <span>🚪</span>
+                          <span>Sign Out</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
-                <>
+                <div className="flex items-center gap-3">
                   <Link to="/login" className="text-ink hover:text-crimson transition-colors">
                     Login
                   </Link>
-                  <Link to="/register" className="bg-ink text-ivory px-4 py-1.5 hover:bg-crimson transition-colors">
+                  <Link to="/register" className="bg-ink text-ivory px-4 py-1.5 hover:bg-crimson transition-colors shadow-xs">
                     Sign Up
                   </Link>
-                </>
+                </div>
               )}
             </div>
 
@@ -209,22 +332,39 @@ const Navbar = () => {
           <div className="border-t border-sand pt-5">
             {user ? (
               <div className="space-y-4">
-                <Link to="/profile" onClick={() => setMobileOpen(false)} className="block text-ink">
-                  {user.name}
+                <div className="flex items-center gap-3 p-3 bg-sand/30 border border-sand rounded-xs">
+                  <div className="w-10 h-10 rounded-full bg-ink text-ivory text-xs font-semibold flex items-center justify-center shrink-0">
+                    {getInitials(userName)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-ink text-sm truncate">{userName}</p>
+                      {isAdmin && (
+                        <span className="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.2 rounded font-semibold uppercase">
+                          Admin
+                        </span>
+                      )}
+                    </div>
+                    {userEmail && <p className="text-xs text-muted truncate">{userEmail}</p>}
+                  </div>
+                </div>
+
+                <Link to="/profile" onClick={() => setMobileOpen(false)} className="block text-ink hover:text-crimson">
+                  👤 My Profile & Addresses
                 </Link>
-                <Link to="/orders" onClick={() => setMobileOpen(false)} className="block text-ink">
-                  Orders
+                <Link to="/orders" onClick={() => setMobileOpen(false)} className="block text-ink hover:text-crimson">
+                  📦 My Orders
                 </Link>
-                {user.role === "admin" && (
-                  <Link to="/admin/dashboard" onClick={() => setMobileOpen(false)} className="block text-crimson">
-                    Admin Dashboard
+                {isAdmin && (
+                  <Link to="/admin/dashboard" onClick={() => setMobileOpen(false)} className="block text-crimson font-medium">
+                    👑 Admin Dashboard
                   </Link>
                 )}
                 <button
                   onClick={handleLogout}
-                  className="w-full border border-ink px-4 py-2 text-ink hover:bg-ink hover:text-ivory transition-colors"
+                  className="w-full border border-ink px-4 py-2 text-ink hover:bg-ink hover:text-ivory transition-colors text-center cursor-pointer"
                 >
-                  Logout
+                  Sign Out
                 </button>
               </div>
             ) : (

@@ -124,3 +124,60 @@ export const deleteCoupon = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc Seed popular demo coupons for testing (Admin only)
+// @route POST /api/coupons/seed-samples
+export const seedSampleCoupons = async (req, res) => {
+  try {
+    const sampleCoupons = [
+      {
+        code: "WELCOME10",
+        discountType: "percentage",
+        discountValue: 10,
+        minOrderValue: 499,
+        maxDiscount: 200,
+        expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000), // 6 months ahead
+        usageLimit: 500,
+        isActive: true,
+      },
+      {
+        code: "FLAT150",
+        discountType: "flat",
+        discountValue: 150,
+        minOrderValue: 999,
+        expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
+        usageLimit: 250,
+        isActive: true,
+      },
+      {
+        code: "FASHION20",
+        discountType: "percentage",
+        discountValue: 20,
+        minOrderValue: 1199,
+        maxDiscount: 500,
+        expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
+        usageLimit: 300,
+        isActive: true,
+      },
+      {
+        code: "FESTIVE50",
+        discountType: "percentage",
+        discountValue: 50,
+        minOrderValue: 1999,
+        maxDiscount: 1000,
+        expiryDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+        usageLimit: 100,
+        isActive: true,
+      },
+    ];
+
+    for (const item of sampleCoupons) {
+      await Coupon.findOneAndUpdate({ code: item.code }, item, { upsert: true, new: true });
+    }
+
+    const all = await Coupon.find({}).sort({ createdAt: -1 });
+    res.status(201).json({ message: "Sample coupons seeded successfully", coupons: all });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

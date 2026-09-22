@@ -39,9 +39,14 @@ const productSchema = new mongoose.Schema(
         type: String, // e.g., "S", "M", "L", "XL"
       },
     ],
+    fabric: {
+      type: String,
+      default: "Cotton",
+      trim: true,
+    },
     colors: [
       {
-        type: String, // e.g., "Red", "Blue", "Black"
+        type: String,
       },
     ],
     stock: {

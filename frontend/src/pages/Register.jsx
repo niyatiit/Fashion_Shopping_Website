@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import PasswordInput from "../components/common/PasswordInput";
 
 const Register = () => {
   const { register } = useAuth();
@@ -56,8 +57,8 @@ const Register = () => {
         <input type="text" name="name" placeholder="Full Name" value={formData.name} onChange={handleChange} required className="w-full border border-sand px-3 py-2.5 text-sm focus:outline-none focus:border-crimson" />
         <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} required className="w-full border border-sand px-3 py-2.5 text-sm focus:outline-none focus:border-crimson" />
         <input type="tel" name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} required className="w-full border border-sand px-3 py-2.5 text-sm focus:outline-none focus:border-crimson" />
-        <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} required className="w-full border border-sand px-3 py-2.5 text-sm focus:outline-none focus:border-crimson" />
-        <input type="password" name="confirmPassword" placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} required className="w-full border border-sand px-3 py-2.5 text-sm focus:outline-none focus:border-crimson" />
+        <PasswordInput name="password" placeholder="Password (min 8 chars, 1 letter & 1 number)" value={formData.password} onChange={handleChange} required autoComplete="new-password" />
+        <PasswordInput name="confirmPassword" placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} required autoComplete="new-password" />
 
         <button type="submit" disabled={loading} className="w-full bg-ink text-ivory py-3 hover:bg-crimson transition-colors disabled:opacity-50">
           {loading ? "Creating account..." : "Register"}

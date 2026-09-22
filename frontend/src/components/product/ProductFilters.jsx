@@ -2,17 +2,16 @@ import { useEffect, useState } from "react";
 import axiosInstance from "../../api/axiosInstance";
 
 const SIZE_OPTIONS = ["XS", "S", "M", "L", "XL", "XXL"];
-const COLOR_OPTIONS = [
-  "Black",
-  "White",
-  "Red",
-  "Blue",
-  "Green",
-  "Yellow",
-  "Pink",
-  "Grey",
-  "Beige",
-  "Navy",
+const MATERIAL_OPTIONS = [
+  "Cotton",
+  "Rayon",
+  "Silk",
+  "Denim",
+  "Linen",
+  "Chiffon",
+  "Georgette",
+  "Velvet",
+  "Wool",
 ];
 
 const flattenCategories = (tree, prefix = "") =>
@@ -100,27 +99,30 @@ const ProductFilters = ({ filters, setFilters }) => {
       </div>
 
       <div>
-        <h3 className="font-display text-lg text-ink mb-3">Color</h3>
+        <h3 className="font-display text-lg text-ink mb-3 flex items-center gap-2">
+          <span>🧵 Fabric & Material</span>
+        </h3>
         <div className="flex flex-wrap gap-2">
-          {COLOR_OPTIONS.map((color) => (
-            <button
-              key={color}
-              type="button"
-              onClick={() =>
-                handleChange(
-                  "color",
-                  (filters.color || "").toLowerCase() === color.toLowerCase() ? "" : color
-                )
-              }
-              className={`px-3 py-1.5 text-xs border ${
-                (filters.color || "").toLowerCase() === color.toLowerCase()
-                  ? "border-ink bg-ink text-ivory"
-                  : "border-sand text-ink hover:border-ink"
-              }`}
-            >
-              {color}
-            </button>
-          ))}
+          {MATERIAL_OPTIONS.map((mat) => {
+            const isSelected =
+              (filters.fabric || "").toLowerCase() === mat.toLowerCase();
+            return (
+              <button
+                key={mat}
+                type="button"
+                onClick={() =>
+                  handleChange("fabric", isSelected ? "" : mat)
+                }
+                className={`px-3 py-1.5 text-xs border rounded-xs transition-colors ${
+                  isSelected
+                    ? "border-ink bg-ink text-ivory font-medium"
+                    : "border-sand text-ink hover:border-ink bg-white/40"
+                }`}
+              >
+                {mat}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -157,7 +159,7 @@ const ProductFilters = ({ filters, setFilters }) => {
             sort: "",
             category: "",
             size: "",
-            color: "",
+            fabric: "",
             brand: "",
             keyword: prev.keyword,
           }))

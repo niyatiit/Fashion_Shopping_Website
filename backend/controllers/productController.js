@@ -75,6 +75,7 @@ export const createProduct = async (req, res) => {
       discountPrice,
       category,
       brand,
+      fabric,
       sizes,
       colors,
       stock,
@@ -97,8 +98,9 @@ export const createProduct = async (req, res) => {
       discountPrice: discountPrice ? Number(discountPrice) : 0,
       category,
       brand: brand ? brand.trim() : "Generic",
+      fabric: fabric ? fabric.trim() : "Cotton",
       sizes: normalizeSizes(sizes),
-      colors: normalizeColors(colors),
+      colors: colors ? normalizeColors(colors) : [],
       stock: stock !== undefined ? Number(stock) : 0,
       isFeatured: isFeatured === true || isFeatured === "true",
       images,
@@ -122,6 +124,8 @@ export const getAllProducts = async (req, res) => {
       brand,
       size,
       color,
+      fabric,
+      material,
       sort,
       isFeatured,
       onSale,
@@ -145,6 +149,10 @@ export const getAllProducts = async (req, res) => {
     }
     if (color) {
       query.colors = { $regex: new RegExp(`^${escapeRegex(color.trim())}$`, "i") };
+    }
+    const mat = (fabric || material || "").trim();
+    if (mat) {
+      query.fabric = { $regex: escapeRegex(mat), $options: "i" };
     }
     if (isFeatured === "true") {
       query.isFeatured = true;
@@ -263,6 +271,7 @@ export const updateProduct = async (req, res) => {
     if (req.body.discountPrice !== undefined) product.discountPrice = Number(req.body.discountPrice);
     if (req.body.category !== undefined) product.category = req.body.category;
     if (req.body.brand !== undefined) product.brand = req.body.brand.trim();
+    if (req.body.fabric !== undefined) product.fabric = req.body.fabric.trim();
     if (req.body.sizes !== undefined) product.sizes = normalizeSizes(req.body.sizes);
     if (req.body.colors !== undefined) product.colors = normalizeColors(req.body.colors);
     if (req.body.stock !== undefined) product.stock = Number(req.body.stock);

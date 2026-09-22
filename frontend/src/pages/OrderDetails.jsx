@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 
+const statusBadges = {
+  Processing: "bg-amber-50 text-amber-800 border-amber-200",
+  Shipped: "bg-blue-50 text-blue-800 border-blue-200",
+  "Out for Delivery": "bg-purple-50 text-purple-800 border-purple-200",
+  Delivered: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  Cancelled: "bg-rose-50 text-rose-800 border-rose-200",
+};
+
 const OrderDetails = () => {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
@@ -36,6 +44,16 @@ const OrderDetails = () => {
     }
   };
 
+  const getProductTitle = () => {
+    if (!order?.orderItems || order.orderItems.length === 0) {
+      return "Fashion Order";
+    }
+    const names = order.orderItems.map((i) => i.name).filter(Boolean);
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return `${names[0]} & ${names[1]}`;
+    return `${names[0]}, ${names[1]} & ${names.length - 2} more item${names.length - 2 > 1 ? "s" : ""}`;
+  };
+
   if (loading)
     return <p className="text-center text-muted py-20">Loading...</p>;
   if (error || !order)
@@ -52,8 +70,8 @@ const OrderDetails = () => {
 
       <div className="flex justify-between items-start mt-6 mb-10">
         <div>
-          <h1 className="font-display text-2xl text-ink mb-1">
-            Order #{order._id.slice(-8).toUpperCase()}
+          <h1 className="font-display text-2xl sm:text-3xl text-ink mb-1 font-medium">
+            {getProductTitle()}
           </h1>
           <p className="text-sm text-muted">
             Placed on{" "}
@@ -64,7 +82,13 @@ const OrderDetails = () => {
             })}
           </p>
         </div>
-        <p className="text-ink font-medium">{order.orderStatus}</p>
+        <span
+          className={`text-xs px-3 py-1 rounded-full border font-medium ${
+            statusBadges[order.orderStatus] || "bg-sand/40 text-ink border-sand"
+          }`}
+        >
+          ● {order.orderStatus}
+        </span>
       </div>
 
       {/* Items */}

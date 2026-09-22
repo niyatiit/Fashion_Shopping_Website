@@ -4,15 +4,50 @@ import axiosInstance from "../api/axiosInstance";
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem("user");
+      const token = localStorage.getItem("token");
+      if (token && savedUser) {
+        const parsed = JSON.parse(savedUser);
+        if (parsed && typeof parsed === "object") {
+          return parsed;
+        }
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [loading, setLoading] = useState(() => {
+    const token = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
+    // Only block with loading if we have a token but haven't loaded the user object yet
+    return Boolean(token && !savedUser);
+  });
 
   const fetchProfile = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setUser(null);
+      localStorage.removeItem("user");
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data } = await axiosInstance.get("/users/profile");
-      setUser(data);
+      const fullUser = { ...(typeof data === "object" ? data : {}), token };
+      setUser(fullUser);
+      localStorage.setItem("user", JSON.stringify(fullUser));
     } catch (error) {
-      setUser(null);
+      // Only clear if 401 Unauthorized (token actually expired or invalid)
+      if (error.response?.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -25,6 +60,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (formData) => {
     const { data } = await axiosInstance.post("/auth/register", formData);
     if (data.token) localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data));
     setUser(data);
     return data;
   };
@@ -32,6 +68,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (formData) => {
     const { data } = await axiosInstance.post("/auth/login", formData);
     if (data.token) localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data));
     setUser(data);
     return data;
   };
@@ -41,6 +78,7 @@ export const AuthProvider = ({ children }) => {
       await axiosInstance.post("/auth/logout");
     } finally {
       localStorage.removeItem("token");
+      localStorage.removeItem("user");
       setUser(null);
     }
   };

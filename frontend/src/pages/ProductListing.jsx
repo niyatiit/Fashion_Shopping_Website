@@ -17,7 +17,7 @@ const ProductListing = () => {
     sort: "",
     category: searchParams.get("category") || "",
     size: "",
-    color: "",
+    fabric: "",
     brand: "",
     keyword: searchParams.get("keyword") || "",
   });
@@ -43,7 +43,7 @@ const ProductListing = () => {
         if (filters.sort) params.append("sort", filters.sort);
         if (filters.category) params.append("category", filters.category);
         if (filters.size) params.append("size", filters.size);
-        if (filters.color) params.append("color", filters.color);
+        if (filters.fabric) params.append("fabric", filters.fabric);
         if (filters.brand) params.append("brand", filters.brand);
         if (searchParams.get("onSale")) params.append("onSale", searchParams.get("onSale"));
         params.append("page", page);

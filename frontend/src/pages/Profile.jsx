@@ -1,6 +1,7 @@
 import { useState } from "react";
 import useAuth from "../hooks/useAuth";
 import axiosInstance from "../api/axiosInstance";
+import PasswordInput from "../components/common/PasswordInput";
 
 const Profile = () => {
   const { user, fetchProfile, changePassword, resendVerification } = useAuth();
@@ -239,33 +240,33 @@ const Profile = () => {
             {passwordMessage && (
               <p className="bg-green-100 text-green-700 text-xs p-2 rounded">{passwordMessage}</p>
             )}
-            <input
-              type="password"
+            <PasswordInput
+              name="currentPassword"
               placeholder="Current Password"
               value={passwordForm.currentPassword}
               onChange={(e) =>
                 setPasswordForm({ ...passwordForm, currentPassword: e.target.value })
               }
               required
-              className="w-full border border-sand px-3 py-2 text-sm focus:outline-none focus:border-crimson"
+              autoComplete="current-password"
             />
-            <input
-              type="password"
-              placeholder="New Password"
+            <PasswordInput
+              name="newPassword"
+              placeholder="New Password (min 8 chars, 1 letter & 1 number)"
               value={passwordForm.newPassword}
               onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
               required
-              className="w-full border border-sand px-3 py-2 text-sm focus:outline-none focus:border-crimson"
+              autoComplete="new-password"
             />
-            <input
-              type="password"
+            <PasswordInput
+              name="confirmNewPassword"
               placeholder="Confirm New Password"
               value={passwordForm.confirmNewPassword}
               onChange={(e) =>
                 setPasswordForm({ ...passwordForm, confirmNewPassword: e.target.value })
               }
               required
-              className="w-full border border-sand px-3 py-2 text-sm focus:outline-none focus:border-crimson"
+              autoComplete="new-password"
             />
             <div className="flex gap-3">
               <button

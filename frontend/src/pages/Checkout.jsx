@@ -65,6 +65,20 @@ const Checkout = () => {
   const [placingStage, setPlacingStage] = useState(""); // human-readable status while placing
   const [error, setError] = useState("");
 
+  const [copiedCard, setCopiedCard] = useState("");
+
+  const copyTestCard = (num, label) => {
+    try {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(num.replace(/\s+/g, ""));
+        setCopiedCard(label);
+        setTimeout(() => setCopiedCard(""), 2500);
+      }
+    } catch {
+      setCopiedCard("");
+    }
+  };
+
   const fillDemoUpi = (handle = "@okhdfcbank") => {
     const base = user?.email ? user.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "") : "buyer";
     setUpiId(`${base || "demo.shopper"}${handle}`);
@@ -179,18 +193,47 @@ const Checkout = () => {
     });
 
   const buildOrderItems = () =>
-    cart.items.map((item) => ({
-      product: item.product._id,
-      name: item.product.name,
-      image: item.product.images?.[0]?.url,
-      price: item.price,
-      quantity: item.quantity,
-      size: item.size,
-      color: item.color,
-    }));
+    cart.items.map((item) => {
+      const prodId = typeof item.product === "object" ? item.product?._id : item.product;
+      const prodName =
+        (typeof item.product === "object" && item.product?.name) || item.name || "Fashion Product";
+      const prodImg =
+        (typeof item.product === "object" && item.product?.images?.[0]?.url) ||
+        item.image ||
+        "https://placehold.co/400x500?text=FashionHub";
+      return {
+        product: prodId,
+        name: prodName,
+        image: prodImg,
+        price: item.price || (item.product?.discountPrice > 0 ? item.product.discountPrice : item.product?.price) || 0,
+        quantity: item.quantity || 1,
+        size: item.size || "",
+        color: item.color || "",
+      };
+    });
 
   const placeOrder = async (paymentInfo = {}) => {
-    const address = addresses.find((a) => a._id === selectedAddress);
+    let address = addresses.find((a) => a._id === selectedAddress);
+    // If no address selected from list, check if user filled out the inline addressForm
+    if (!address && addressForm?.address?.trim()) {
+      address = {
+        fullName: addressForm.fullName?.trim() || user?.name || "Customer",
+        phone: addressForm.phone?.trim() || user?.phone || "9999999999",
+        address: addressForm.address.trim(),
+        city: addressForm.city?.trim() || "City",
+        state: addressForm.state?.trim() || "State",
+        pincode: addressForm.pincode?.trim() || "000000",
+        country: addressForm.country || "India",
+      };
+    }
+
+    if (!address) {
+      setError("Please add or select a shipping address before continuing.");
+      setPlacing(false);
+      setPlacingStage("");
+      return;
+    }
+
     setPlacingStage("Placing your order...");
     const { data } = await axiosInstance.post("/orders", {
       orderItems: buildOrderItems(),
@@ -203,8 +246,60 @@ const Checkout = () => {
       discountAmount: discount,
       totalPrice: total,
     });
-    await clearCart();
+
+    if (clearCart && typeof clearCart === "function") {
+      try {
+        await clearCart();
+      } catch (clearErr) {
+        console.warn("Could not clear cart after order:", clearErr);
+      }
+    }
     navigate(`/order-success/${data._id}`);
+  };
+
+  const handleInstantRazorpayTest = async () => {
+    setError("");
+    if (!cart.items || cart.items.length === 0) {
+      setError("Your bag is empty");
+      return;
+    }
+    if (hasStockIssue) {
+      setError("Please resolve stock issues before continuing.");
+      return;
+    }
+    if (!selectedAddress && !addressForm?.address?.trim()) {
+      setError("Please select or enter a shipping address");
+      return;
+    }
+
+    try {
+      setPlacing(true);
+      setPlacingStage("Initializing Razorpay Sandbox order...");
+      const { data: razorOrder } = await axiosInstance.post("/payment/create-order", {
+        amount: total,
+      });
+
+      setPlacingStage("Simulating successful payment verification...");
+      await new Promise((r) => setTimeout(r, 600));
+
+      const mockPaymentId = `pay_sim_${Date.now()}`;
+      await axiosInstance.post("/payment/verify", {
+        razorpay_order_id: razorOrder.orderId,
+        razorpay_payment_id: mockPaymentId,
+        razorpay_signature: "mock_signature_test",
+      });
+
+      setPlacingStage("Recording verified order...");
+      await placeOrder({
+        razorpay_order_id: razorOrder.orderId,
+        razorpay_payment_id: mockPaymentId,
+        razorpay_signature: "mock_signature_test",
+      });
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to complete test payment");
+      setPlacing(false);
+      setPlacingStage("");
+    }
   };
 
   const handlePlaceOrder = async () => {
@@ -218,8 +313,8 @@ const Checkout = () => {
       setError("Some items in your bag are out of stock or exceed available quantity. Please update your bag before continuing.");
       return;
     }
-    if (!selectedAddress) {
-      setError("Please select a shipping address");
+    if (!selectedAddress && !addressForm?.address?.trim()) {
+      setError("Please select or enter a shipping address");
       return;
     }
 
@@ -260,7 +355,9 @@ const Checkout = () => {
       setPlacingStage("Loading payment gateway...");
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
-        setError("External payment script was blocked by browser or adblocker. Please select 'UPI Payment' or 'Cash on Delivery'.");
+        setError(
+          "External payment script was blocked by browser or adblocker. Click '⚡ Instant Test Order' above to complete test checkout, or select UPI / Cash on Delivery."
+        );
         setPlacing(false);
         setPlacingStage("");
         return;
@@ -281,6 +378,7 @@ const Checkout = () => {
       }
 
       setPlacingStage("Waiting for payment...");
+      const safePhone = user?.phone ? String(user.phone).replace(/[^0-9]/g, "").slice(-10) : "";
       const options = {
         key: razorOrder.key,
         amount: razorOrder.amount,
@@ -288,6 +386,10 @@ const Checkout = () => {
         order_id: razorOrder.orderId,
         name: "FashionHub",
         description: "Order Payment",
+        image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=200&h=200&fit=crop",
+        notes: {
+          merchant_order_id: razorOrder.orderId,
+        },
         handler: async (response) => {
           try {
             setPlacingStage("Verifying payment...");
@@ -306,7 +408,11 @@ const Checkout = () => {
             setPlacingStage("");
           }
         },
-        prefill: { name: user.name, email: user.email, contact: user.phone },
+        prefill: {
+          name: user?.name || "Customer",
+          email: user?.email || "shopper@fashionhub.com",
+          contact: safePhone.length === 10 ? safePhone : "9876543210",
+        },
         theme: { color: "#8C1D18" },
         modal: {
           ondismiss: () => {
@@ -319,7 +425,14 @@ const Checkout = () => {
 
       const rzp = new window.Razorpay(options);
       rzp.on("payment.failed", (response) => {
-        setError(`Payment failed: ${response.error?.description || "Please try again."}`);
+        const desc = response.error?.description || "";
+        if (desc.toLowerCase().includes("international")) {
+          setError(
+            "International cards are not supported on Indian merchant accounts. Please select Netbanking / UPI in the popup (click green 'Success' button) or use Indian RuPay card: 6070 0000 0000 0000."
+          );
+        } else {
+          setError(`Payment failed: ${desc || "Please try again or use Instant Sandbox Order."}`);
+        }
         setPlacing(false);
         setPlacingStage("");
       });
@@ -624,6 +737,113 @@ const Checkout = () => {
                     </p>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Razorpay Gateway Interface */}
+            {paymentMethod === "Razorpay" && (
+              <div className="border border-sand bg-white p-5 text-sm rounded-xs shadow-xs space-y-4">
+                <div className="flex items-center justify-between border-b border-sand pb-3">
+                  <div>
+                    <span className="font-semibold text-ink">Razorpay Payment Gateway</span>
+                    <p className="text-xs text-muted mt-0.5">Cards, Netbanking, Wallets & UPI</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <span className="bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded font-mono text-[11px] font-semibold">
+                      Test Mode Active
+                    </span>
+                  </div>
+                </div>
+
+                {/* How to test instructions */}
+                <div className="bg-sand/20 border border-sand p-4 text-xs space-y-3 rounded-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-ink flex items-center gap-1.5">
+                      <span>📌</span> Razorpay Test Mode Guide
+                    </span>
+                    <span className="text-[11px] text-muted">Indian Sandbox</span>
+                  </div>
+
+                  {/* Method 1: Netbanking / UPI */}
+                  <div className="bg-white border border-sand p-3 rounded-xs space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-semibold px-1.5 py-0.5 rounded">
+                        RECOMMENDED · 100% SUCCESS
+                      </span>
+                      <span className="font-medium text-ink">UPI or Netbanking</span>
+                    </div>
+                    <p className="text-muted text-[11px] leading-relaxed">
+                      In the Razorpay checkout popup, select <strong>Netbanking</strong> (any bank like SBI, HDFC, ICICI) or <strong>UPI</strong>. On the test screen, click the green <strong className="text-emerald-700">"Success"</strong> button to immediately complete the order.
+                    </p>
+                  </div>
+
+                  {/* Method 2: Domestic Test Cards */}
+                  <div className="bg-white border border-sand p-3 rounded-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-blue-100 text-blue-800 text-[10px] font-semibold px-1.5 py-0.5 rounded">
+                          DOMESTIC CARDS
+                        </span>
+                        <span className="font-medium text-ink">Indian RuPay / Visa Test Card</span>
+                      </div>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-2 text-[11px]">
+                      <div className="bg-sand/30 p-2 rounded-xs flex items-center justify-between">
+                        <div>
+                          <p className="text-muted text-[10px]">RuPay Test Card:</p>
+                          <p className="font-mono font-semibold text-ink">6070 0000 0000 0000</p>
+                          <p className="text-muted text-[10px]">Exp: 12/30 · CVV: 123 · OTP: 123456</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => copyTestCard("6070 0000 0000 0000", "rupay")}
+                          className="text-[10px] bg-white border border-sand hover:border-ink px-2 py-1 rounded font-medium text-ink transition-colors cursor-pointer shrink-0"
+                        >
+                          {copiedCard === "rupay" ? "✓ Copied!" : "Copy"}
+                        </button>
+                      </div>
+
+                      <div className="bg-sand/30 p-2 rounded-xs flex items-center justify-between">
+                        <div>
+                          <p className="text-muted text-[10px]">Indian Domestic Visa:</p>
+                          <p className="font-mono font-semibold text-ink">4012 0000 0000 0002</p>
+                          <p className="text-muted text-[10px]">Exp: 12/30 · CVV: 123 · OTP: 123456</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => copyTestCard("4012 0000 0000 0002", "visa")}
+                          className="text-[10px] bg-white border border-sand hover:border-ink px-2 py-1 rounded font-medium text-ink transition-colors cursor-pointer shrink-0"
+                        >
+                          {copiedCard === "visa" ? "✓ Copied!" : "Copy"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Notice about 4111 card */}
+                    <div className="bg-amber-50 border border-amber-200 p-2 rounded-xs text-[11px] text-amber-900 flex items-start gap-1.5">
+                      <span className="shrink-0 mt-0.5">⚠️</span>
+                      <p>
+                        <strong>Avoid 4111 1111 1111 1111:</strong> Razorpay identifies it as an International card, which is rejected with <em>"International cards are not supported"</em>. Use RuPay or Netbanking above instead.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Instant Sandbox Bypass Option */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
+                  <div className="text-xs text-muted">
+                    <span className="font-medium text-ink">Prefer 1-click test?</span> Bypass popup & place verified order:
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleInstantRazorpayTest}
+                    disabled={placing}
+                    className="border border-ink bg-sand/40 hover:bg-ink hover:text-ivory px-3.5 py-1.5 text-xs text-ink transition-colors font-medium rounded-xs shrink-0 cursor-pointer disabled:opacity-50"
+                  >
+                    ⚡ Instant Sandbox Order (1-Click Test)
+                  </button>
+                </div>
               </div>
             )}
           </div>

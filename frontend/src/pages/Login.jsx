@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import PasswordInput from "../components/common/PasswordInput";
 
 const Login = () => {
   const { login } = useAuth();
@@ -38,7 +39,7 @@ const Login = () => {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleChange} required className="w-full border border-sand px-3 py-2.5 text-sm focus:outline-none focus:border-crimson" />
-        <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} required className="w-full border border-sand px-3 py-2.5 text-sm focus:outline-none focus:border-crimson" />
+        <PasswordInput name="password" placeholder="Password" value={formData.password} onChange={handleChange} required autoComplete="current-password" />
 
         <div className="text-right">
           <Link to="/forgot-password" className="text-sm text-muted hover:text-crimson transition-colors">

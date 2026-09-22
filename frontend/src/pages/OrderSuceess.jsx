@@ -58,8 +58,11 @@ const OrderSuccess = () => {
         </div>
         <h1 className="font-display text-3xl text-ink mb-3">Order placed successfully!</h1>
         <p className="text-muted">
-          Thank you — a confirmation for order{" "}
-          <span className="text-ink">#{order._id.slice(-8).toUpperCase()}</span> has been recorded.
+          Thank you — your order for{" "}
+          <span className="text-ink font-semibold">
+            {order.orderItems?.map((i) => i.name).filter(Boolean).join(", ") || "your fashion items"}
+          </span>{" "}
+          has been placed successfully.
         </p>
       </div>
 

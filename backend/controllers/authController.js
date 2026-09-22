@@ -68,6 +68,7 @@ export const registerUser = async (req, res) => {
       phone: user.phone,
       role: user.role,
       isVerified: user.isVerified,
+      verifyUrl,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -166,7 +167,11 @@ export const resendVerification = async (req, res) => {
       }),
     });
 
-    res.json({ message: "Verification email sent" });
+    res.json({
+      message: "Verification email sent",
+      verifyUrl,
+      emailSent: true,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

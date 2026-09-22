@@ -78,7 +78,7 @@ const ProductCard = ({ product, showActions = true }) => {
     if (outOfStock || adding) return;
     try {
       setAdding(true);
-      await addToCart(product._id, 1, product.sizes?.[0], product.colors?.[0]);
+      await addToCart(product._id, 1, product.sizes?.[0]);
       setJustAdded(true);
       setTimeout(() => setJustAdded(false), 1800);
     } catch (error) {
@@ -132,7 +132,14 @@ const ProductCard = ({ product, showActions = true }) => {
         )}
       </div>
 
-      <h3 className="text-sm text-ink mb-1 truncate">{product.name}</h3>
+      <h3 className="text-sm text-ink mb-0.5 truncate">{product.name}</h3>
+
+      {product.fabric && (
+        <p className="text-[11px] text-muted tracking-wide mb-1 flex items-center gap-1 font-sans">
+          <span className="opacity-70 text-[10px]">🧵</span>
+          <span className="capitalize">{product.fabric}</span>
+        </p>
+      )}
 
       {product.numReviews > 0 && (
         <div className="flex items-center gap-1 mb-1">

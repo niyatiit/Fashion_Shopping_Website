@@ -12,8 +12,8 @@ const ProductForm = ({ onSuccess, onCancel, initialProduct = null }) => {
     discountPrice: initialProduct?.discountPrice || "",
     category: initialProduct?.category?._id || initialProduct?.category || "",
     brand: initialProduct?.brand || "",
+    fabric: initialProduct?.fabric || "Pure Cotton",
     sizes: initialProduct?.sizes?.join(", ") || "",
-    colors: initialProduct?.colors?.join(", ") || "",
     stock: initialProduct?.stock ?? "",
     isFeatured: initialProduct?.isFeatured || false,
   });
@@ -49,10 +49,10 @@ const ProductForm = ({ onSuccess, onCancel, initialProduct = null }) => {
       data.append("discountPrice", formData.discountPrice || 0);
       data.append("category", formData.category);
       data.append("brand", formData.brand);
+      data.append("fabric", formData.fabric);
       data.append("stock", formData.stock);
       data.append("isFeatured", formData.isFeatured);
       formData.sizes.split(",").map((s) => s.trim()).filter(Boolean).forEach((s) => data.append("sizes", s));
-      formData.colors.split(",").map((c) => c.trim()).filter(Boolean).forEach((c) => data.append("colors", c));
       images.forEach((img) => data.append("images", img));
 
       if (isEditMode) {
@@ -90,8 +90,34 @@ const ProductForm = ({ onSuccess, onCancel, initialProduct = null }) => {
       </select>
 
       <input placeholder="Brand" value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} className="w-full border border-sand px-3 py-2 focus:outline-none focus:border-crimson" />
-      <input placeholder="Sizes (comma separated, e.g. S,M,L)" value={formData.sizes} onChange={(e) => setFormData({ ...formData, sizes: e.target.value })} className="w-full border border-sand px-3 py-2 focus:outline-none focus:border-crimson" />
-      <input placeholder="Colors (comma separated, e.g. Red,Blue)" value={formData.colors} onChange={(e) => setFormData({ ...formData, colors: e.target.value })} className="w-full border border-sand px-3 py-2 focus:outline-none focus:border-crimson" />
+      <input placeholder="Sizes (comma separated, e.g. S,M,L,XL)" value={formData.sizes} onChange={(e) => setFormData({ ...formData, sizes: e.target.value })} className="w-full border border-sand px-3 py-2 focus:outline-none focus:border-crimson" />
+      
+      <div>
+        <label className="block text-xs text-muted mb-1">Fabric / Material</label>
+        <input
+          placeholder="e.g. 100% Pure Cotton, Silk, Denim, Linen, Chiffon"
+          value={formData.fabric}
+          onChange={(e) => setFormData({ ...formData, fabric: e.target.value })}
+          className="w-full border border-sand px-3 py-2 focus:outline-none focus:border-crimson"
+        />
+        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+          <span className="text-[11px] text-muted">Quick select:</span>
+          {["Pure Cotton", "Silk", "Denim", "Linen", "Rayon", "Chiffon", "Georgette", "Velvet", "Wool"].map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFormData({ ...formData, fabric: f })}
+              className={`text-[11px] px-2 py-0.5 rounded border transition-colors ${
+                formData.fabric === f
+                  ? "bg-ink text-ivory border-ink"
+                  : "bg-sand/40 hover:bg-sand text-ink border-transparent"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <label className="flex items-center gap-2 text-muted">
         <input

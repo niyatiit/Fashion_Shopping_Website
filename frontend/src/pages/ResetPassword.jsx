@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import PasswordInput from "../components/common/PasswordInput";
 
 const ResetPassword = () => {
   const { resetPassword } = useAuth();
@@ -51,8 +52,8 @@ const ResetPassword = () => {
 
       {!message && (
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="password" name="password" placeholder="New Password" value={formData.password} onChange={handleChange} required className="w-full border border-sand px-3 py-2.5 text-sm focus:outline-none focus:border-crimson" />
-          <input type="password" name="confirmPassword" placeholder="Confirm New Password" value={formData.confirmPassword} onChange={handleChange} required className="w-full border border-sand px-3 py-2.5 text-sm focus:outline-none focus:border-crimson" />
+          <PasswordInput name="password" placeholder="New Password (min 8 chars, 1 letter & 1 number)" value={formData.password} onChange={handleChange} required autoComplete="new-password" />
+          <PasswordInput name="confirmPassword" placeholder="Confirm New Password" value={formData.confirmPassword} onChange={handleChange} required autoComplete="new-password" />
           <button type="submit" disabled={loading} className="w-full bg-ink text-ivory py-3 hover:bg-crimson transition-colors disabled:opacity-50">
             {loading ? "Resetting..." : "Reset Password"}
           </button>
